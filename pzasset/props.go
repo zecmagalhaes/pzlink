@@ -137,3 +137,27 @@ func (g *Game) Prop(id string) (PropInfo, bool) {
 	}
 	return info, true
 }
+
+// IdleSpeed is how fast the game plays the idle animation: the node speed in
+// AnimSets/player/idle/Idle.xml times the speed of its first blend entry.
+// Played at 1.0 the breathing looks about 2.6x too fast.
+func (g *Game) IdleSpeed() float64 {
+	const fallback = 0.48 * 0.8
+	b, err := os.ReadFile(filepath.Join(g.Root, "media", "AnimSets", "player", "idle", "Idle.xml"))
+	if err != nil {
+		return fallback
+	}
+	m := speedRe.FindAllStringSubmatch(string(b), 2)
+	speed := 1.0
+	for _, x := range m {
+		if v, err := strconv.ParseFloat(x[1], 64); err == nil && v > 0.05 && v < 4 {
+			speed *= v
+		}
+	}
+	if len(m) == 0 || speed < 0.05 || speed > 4 {
+		return fallback
+	}
+	return speed
+}
+
+var speedRe = regexp.MustCompile(`(?i)<m_SpeedScale>\s*([0-9.]+)\s*</m_SpeedScale>`)

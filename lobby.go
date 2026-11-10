@@ -40,6 +40,7 @@ type lobbyPlayer struct {
 
 type lobbyState struct {
 	GameFound bool          `json:"gameFound"`
+	IdleSpeed float64       `json:"idleSpeed,omitempty"`
 	GameError string        `json:"gameError,omitempty"`
 	Players   []lobbyPlayer `json:"players"`
 }
@@ -51,6 +52,8 @@ type assets struct {
 	cat  *pzasset.Catalog
 	err  error
 
+	idleSpeed float64
+
 	mu  sync.Mutex
 	glb map[uint64][]byte
 }
@@ -60,6 +63,7 @@ func (as *assets) load() error {
 		as.game, as.err = pzasset.FindGame()
 		if as.err == nil {
 			as.cat, as.err = as.game.LoadCatalog()
+			as.idleSpeed = as.game.IdleSpeed()
 		}
 		if as.err != nil {
 			log.Println("lobby:", as.err)
@@ -223,6 +227,8 @@ func (a *app) lobby() lobbyState {
 	st.GameFound = err == nil
 	if err != nil {
 		st.GameError = err.Error()
+	} else {
+		st.IdleSpeed = a.assets.idleSpeed
 	}
 	a.mu.Lock()
 	mode, remote := a.mode, append([]rosterEntry(nil), a.remoteRoster...)

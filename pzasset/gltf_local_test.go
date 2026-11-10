@@ -79,3 +79,15 @@ func TestLocalProps(t *testing.T) {
 		t.Logf("%-10s escala=%.2f textura=%v", id, p.Scale, filepath.Base(p.Texture))
 	}
 }
+
+func TestLocalIdleSpeed(t *testing.T) {
+	g, err := openGame(filepath.Dir(gameMedia(t)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := g.IdleSpeed()
+	t.Logf("velocidade do idle no jogo: %.3f", s)
+	if s < 0.1 || s > 1 {
+		t.Fatalf("velocidade inesperada %.3f", s)
+	}
+}

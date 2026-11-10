@@ -169,6 +169,7 @@ async function placeProps() {
 // ---------- personagens ----------
 const gltfLoader = new GLTFLoader();
 const players = new Map(); // seed -> { group, mixer, data, label, ring }
+let idleSpeed = 0.38; // o jogo toca o idle a ~38% da velocidade original (AnimSets/player/idle)
 const SLOTS = [[0, 0], [-0.7, -0.2], [0.7, -0.2], [-1.36, -0.48], [1.36, -0.48], [-1.95, -0.85], [1.95, -0.85], [0, -0.95]];
 const LEVEL_COLOR = { good: 0x5fae5a, ok: 0xd6a531, bad: 0xd4513f, wait: 0x7c8796 };
 
@@ -224,7 +225,7 @@ function addPlayer(p, slot) {
       entry.mixer = new THREE.AnimationMixer(model);
       const act = entry.mixer.clipAction(gltf.animations[0]);
       act.play(); act.time = Math.random() * gltf.animations[0].duration;
-      entry.mixer.timeScale = 0.9 + Math.random() * 0.2;
+      entry.mixer.timeScale = idleSpeed * (0.9 + Math.random() * 0.2);
     }
   }, undefined, () => { entry.label.querySelector('.char').textContent = 'personagem indisponível'; });
 }
@@ -313,6 +314,7 @@ async function refresh() {
       msg.hidden = false;
     } else {
       msg.hidden = true;
+      if (st.idleSpeed > 0) idleSpeed = st.idleSpeed;
       if (!started) { started = true; placeProps(); }
       updatePlayers(st.players || []);
     }
