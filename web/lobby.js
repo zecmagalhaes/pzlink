@@ -218,6 +218,8 @@ function profCard(p, extra) {
   return card;
 }
 
+window.pzProfCard = p => profCard(p);
+
 // ---------- ficha ao passar o mouse sobre o personagem ----------
 const tip = document.createElement('div'); tip.id = 'plate-tip'; tip.hidden = true; root.append(tip);
 let tipFor = null, mouse = null;

@@ -9,9 +9,35 @@
     --bg: #14130f; --card: #1f1d17; --line: #34312a; --text: #ece6d6; --muted: #a39b88;
     --accent: #c8402f; --accent2: #e0574a; --good: #5fae5a; --ok: #d6a531; --bad: #d4513f; --wait: #7c8796;
   }
-  * { box-sizing: border-box; }
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #4a453b transparent; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #3d392f; border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: #5a5346; background-clip: padding-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
-  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 18px 16px 40px; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .layout > .col > .card:last-child, .layout > .col section > .card:last-child { margin-bottom: 0; }
+  .panel-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 4px; }
+  .panel-title b { font-size: 15px; letter-spacing: .3px; }
+  @media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+  /* grade de profissões */
+  .prof-grid { position: relative; display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px;
+    max-height: 292px; overflow-y: auto; padding: 2px 4px 2px 0; margin-top: 4px; }
+  .pcard { display: flex; flex-direction: column; gap: 3px; text-align: left; background: #12110d; color: var(--text);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 9px; font-weight: 400; min-height: 64px; }
+  .pcard:hover { background: #1d1b15; border-color: #5a5346; }
+  .pcard.on, .pcard.on:hover { background: #2a1c18; border-color: var(--accent); box-shadow: inset 0 0 0 1px rgba(200,64,47,.35); }
+  .pcard .pn { font-weight: 700; font-size: 13px; line-height: 1.2; }
+  .pcard .pc { font: 700 10.5px ui-monospace, Consolas, monospace; color: #8ec06c; }
+  .pcard .pc.neg { color: #e0705a; } .pcard .pc.zero { color: var(--muted); }
+  .pcard .ps { display: flex; align-items: center; gap: 6px; font-size: 10.5px; color: var(--muted); }
+  .pcard .ps .mini { display: inline-flex; gap: 1px; }
+  .pcard .ps .mini i { width: 4px; height: 7px; background: #2a2822; }
+  .pcard .ps .mini i.on { background: #e9e2c9; }
+  #prof-tip { position: fixed; z-index: 1000; pointer-events: none; }
   h1 { margin: 0; font-size: 28px; letter-spacing: .5px; }
   h1 span { color: var(--accent); }
   .sub { color: var(--muted); margin: 2px 0 20px; font-size: 14px; }
@@ -117,9 +143,12 @@
 
   <div id="error" class="err hidden"></div>
 
+  <div class="layout">
+  <div class="col" id="col-avatar">
+
   <!-- ===== seu sobrevivente ===== -->
   <div class="card" id="avatar">
-    <b>Seu sobrevivente</b>
+    <div class="panel-title"><b>Seu sobrevivente</b><span class="hint" style="margin:0">passe o mouse numa profissão para ver as habilidades</span></div>
     <label for="nick">Apelido</label>
     <input id="nick" maxlength="30" placeholder="ex.: joao">
     <label>Sexo</label>
@@ -128,10 +157,13 @@
       <button data-sex="m">Masculino</button>
       <button data-sex="f">Feminino</button>
     </div>
-    <label for="prof">Profissão</label>
-    <select id="prof"></select>
-    <div class="hint" id="avatar-hint">O apelido sorteia o rosto e o cabelo; a profissão escolhe a roupa. Passe o mouse sobre o personagem no lobby para ver as habilidades da profissão.</div>
+    <label>Profissão</label>
+    <div class="prof-grid" id="prof-grid" role="listbox" aria-label="Profissão"></div>
+    <div class="hint" id="avatar-hint">O apelido sorteia o rosto e o cabelo; a profissão escolhe a roupa. No lobby, passe o mouse sobre um personagem para ver a ficha dele.</div>
   </div>
+  </div>
+
+  <div class="col" id="col-conn">
 
   <!-- ===== tela inicial ===== -->
   <section id="setup">
@@ -222,7 +254,10 @@
       </div>
     </div>
   </section>
+  </div>
+  </div>
 </main>
+<div id="prof-tip" hidden></div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -254,12 +289,12 @@ async function act(btn, path, body) {
 $('btn-join').onclick = () => act($('btn-join'), '/api/join', { nick: $('nick').value, invite: $('invite').value });
 $('btn-host').onclick = () => act($('btn-host'), '/api/host', { key: $('key').value, guestKey: $('guestkey').value, nick: $('nick').value });
 // ---------- seu sobrevivente ----------
-let profTimer, professions = [], sex = 'r';
+let profTimer, professions = [], sex = 'r', selectedProf = '';
 function saveProfile(delay = 400) {
   clearTimeout(profTimer);
   profTimer = setTimeout(async () => {
     try {
-      await post('/api/profile', { nick: $('nick').value, sex, profession: $('prof').value });
+      await post('/api/profile', { nick: $('nick').value, sex, profession: selectedProf });
       window.pzLobbyRefresh && window.pzLobbyRefresh();
     } catch (e) { showErr(e.message); }
   }, delay);
@@ -270,18 +305,58 @@ function setSex(v) {
 }
 document.querySelectorAll('#sex button').forEach(b => b.onclick = () => { setSex(b.dataset.sex); saveProfile(0); });
 $('nick').addEventListener('input', () => saveProfile());
-$('prof').addEventListener('change', () => saveProfile(0));
+
+function profButton(p) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pcard'; b.setAttribute('role', 'option');
+  b.dataset.id = p ? p.id : '';
+  const n = document.createElement('span'); n.className = 'pn'; n.textContent = p ? p.name : 'Sem profissão';
+  const c = document.createElement('span'); c.className = 'pc';
+  if (p) {
+    c.textContent = `${p.cost > 0 ? '+' : ''}${p.cost} pts`;
+    if (p.cost < 0) c.classList.add('neg'); else if (p.cost === 0) c.classList.add('zero');
+  } else { c.textContent = 'roupa aleatória'; c.classList.add('zero'); }
+  b.append(n, c);
+  const top = p && p.boosts && p.boosts[0];
+  if (top) {
+    const s = document.createElement('span'); s.className = 'ps';
+    const mini = document.createElement('span'); mini.className = 'mini';
+    for (let i = 0; i < 10; i++) { const x = document.createElement('i'); if (i < top.level) x.className = 'on'; mini.append(x); }
+    const t = document.createElement('span'); t.textContent = top.name;
+    s.append(mini, t); b.append(s);
+  }
+  b.onclick = () => { selectedProf = b.dataset.id; markProf(); saveProfile(0); };
+  b.onmouseenter = () => showProfTip(p, b);
+  b.onmouseleave = hideProfTip;
+  return b;
+}
+function markProf() {
+  document.querySelectorAll('#prof-grid .pcard').forEach(x => {
+    const on = x.dataset.id === selectedProf;
+    x.classList.toggle('on', on); x.setAttribute('aria-selected', on);
+  });
+}
 async function loadProfessions(selected) {
   try { professions = await (await fetch('/api/professions')).json(); } catch { professions = []; }
-  const sel = $('prof'); sel.replaceChildren();
-  const none = document.createElement('option'); none.value = ''; none.textContent = 'Sem profissão (roupa aleatória)'; sel.append(none);
-  for (const p of professions) {
-    const o = document.createElement('option'); o.value = p.id;
-    o.textContent = `${p.name}  (${p.cost > 0 ? '+' : ''}${p.cost} pts)`;
-    sel.append(o);
-  }
-  sel.value = selected || '';
+  selectedProf = selected || '';
+  const grid = $('prof-grid'); grid.replaceChildren(profButton(null));
+  for (const p of professions) grid.append(profButton(p));
+  markProf();
+  // rola só a grade (scrollIntoView rolaria a página inteira e tiraria o lobby do lugar)
+  const cur = grid.querySelector('.pcard.on');
+  if (cur) grid.scrollTop = Math.max(0, cur.offsetTop - 4);
 }
+function showProfTip(p, el) {
+  const tip = $('prof-tip');
+  if (!p || !window.pzProfCard) { tip.hidden = true; return; }
+  tip.replaceChildren(window.pzProfCard(p)); tip.hidden = false;
+  const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = r.right + 10, y = r.top;
+  if (x + w > innerWidth - 8) x = r.left - w - 10;
+  if (x < 8) x = Math.min(innerWidth - w - 8, Math.max(8, r.left));
+  if (y + h > innerHeight - 8) y = innerHeight - h - 8;
+  tip.style.left = x + 'px'; tip.style.top = Math.max(8, y) + 'px';
+}
+function hideProfTip() { $('prof-tip').hidden = true; }
 $('btn-stop').onclick = () => act($('btn-stop'), '/api/stop');
 $('forget').onclick = e => { e.preventDefault(); act($('btn-host'), '/api/forget-key'); };
 $('btn-copy').onclick = async () => {
