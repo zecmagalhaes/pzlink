@@ -32,9 +32,11 @@ const (
 // savedConfig is stored in the user's config dir. Invites are not saved: they
 // carry an auth key and are only valid for one hosting session anyway.
 type savedConfig struct {
-	AuthKey  string `json:"authKey,omitempty"`
-	GuestKey string `json:"guestKey,omitempty"`
-	Nick     string `json:"nick,omitempty"`
+	AuthKey    string `json:"authKey,omitempty"`
+	GuestKey   string `json:"guestKey,omitempty"`
+	Nick       string `json:"nick,omitempty"`
+	Sex        string `json:"sex,omitempty"`
+	Profession string `json:"profession,omitempty"`
 }
 
 type peerInfo struct {
@@ -69,6 +71,7 @@ type app struct {
 	game             gameProbe
 	assets           assets
 	remoteRoster     []rosterEntry
+	profiles         map[string]profile // host: guest profiles by tailnet IP
 }
 
 func newApp(cfgDir string) *app {
@@ -134,6 +137,7 @@ func (a *app) begin(mode string) (context.Context, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	a.mode, a.cancel, a.errMsg, a.invite = mode, cancel, "", ""
 	a.selfIP, a.hostIP, a.peers, a.others, a.remoteRoster = "", "", nil, nil, nil
+	a.profiles = map[string]profile{}
 	a.pings = map[string]*pingStats{}
 	a.tr.up.Store(0)
 	a.tr.down.Store(0)
@@ -502,6 +506,8 @@ type uiState struct {
 	HasGuestKey bool         `json:"hasGuestKey"`
 	GuestKeyOn  bool         `json:"guestKeyOn"`
 	Nick        string       `json:"nick"`
+	Sex         string       `json:"sex"`
+	Profession  string       `json:"profession"`
 	Peers       []peerInfo   `json:"peers"`
 	Others      []string     `json:"others"`
 	HostPing    *pingSummary `json:"hostPing,omitempty"`
@@ -517,7 +523,7 @@ func (a *app) snapshot() uiState {
 		Invite: a.invite, SelfIP: a.selfIP, HostIP: a.hostIP, Ports: a.ports,
 		HasKey: a.cfg.AuthKey != "", HasGuestKey: a.cfg.GuestKey != "",
 		GuestKeyOn: a.mode == "host" && a.separateGuestKey,
-		Nick:       a.cfg.Nick, Peers: a.peers, Others: a.others,
+		Nick:       a.cfg.Nick, Sex: a.cfg.Sex, Profession: a.cfg.Profession, Peers: a.peers, Others: a.others,
 	}
 	hostPS := a.pings[a.hostIP]
 	if a.mode != "" {

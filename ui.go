@@ -3,11 +3,14 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/zecmagalhaes/pzlink/pzasset"
 )
 
 //go:embed web
@@ -64,7 +67,8 @@ func (a *app) routes(port int) http.Handler {
 			http.NotFound(w, r)
 			return
 		}
-		glb, err := a.assets.characterGLB(seed)
+		q := r.URL.Query()
+		glb, err := a.assets.characterGLB(seed, profile{Sex: q.Get("sex"), Profession: q.Get("prof")})
 		if err != nil {
 			http.Error(w, "personagem indisponível", http.StatusNotFound)
 			return
@@ -83,18 +87,26 @@ func (a *app) routes(port int) http.Handler {
 	mux.HandleFunc("POST /api/join", a.guard(func(body map[string]string) error {
 		return a.startJoin(body["invite"], body["nick"])
 	}))
-	mux.HandleFunc("POST /api/nick", a.guard(func(body map[string]string) error {
-		n := sanitizeName(body["nick"])
-		if n == "" {
-			return nil
+	mux.HandleFunc("GET /api/professions", func(w http.ResponseWriter, r *http.Request) {
+		a.assets.load()
+		list := a.assets.professions
+		if list == nil {
+			list = []pzasset.Profession{}
+		}
+		writeJSON(w, http.StatusOK, list)
+	})
+	mux.HandleFunc("POST /api/profile", a.guard(func(body map[string]string) error {
+		p := cleanProfile(profile{Sex: body["sex"], Profession: body["profession"]})
+		if a.assets.load() == nil && p.Profession != "" && a.assets.profession(p.Profession) == nil {
+			return errors.New("profissão desconhecida")
 		}
 		a.mu.Lock()
-		running := a.mode != ""
-		if !running {
-			a.cfg.Nick = n
-			a.saveConfig()
+		defer a.mu.Unlock()
+		if n := sanitizeName(body["nick"]); n != "" && a.mode == "" {
+			a.cfg.Nick = n // fixed while connected: it names this device in the tailnet
 		}
-		a.mu.Unlock()
+		a.cfg.Sex, a.cfg.Profession = p.Sex, p.Profession
+		a.saveConfig()
 		return nil
 	}))
 	mux.HandleFunc("POST /api/stop", a.guard(func(map[string]string) error {

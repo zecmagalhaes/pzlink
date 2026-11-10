@@ -27,7 +27,8 @@ Jogo do amigo ──UDP──> PZLink do amigo (127.0.0.1:16261/16262)
 
 ## Lobby 3D
 
-- **Lista de jogadores:** o PZLink do anfitrião publica, **só dentro do túnel** (porta TCP 7471 no endereço Tailscale dele), a lista de apelidos com o ping de cada um. Quem está na rede da partida consegue ler essa lista. Nada além de apelido, ping e tipo de rota é publicado.
+- **Lista de jogadores:** o PZLink do anfitrião publica, **só dentro do túnel** (porta TCP 7471 no endereço Tailscale dele), a lista de apelidos com status, ping, tipo de rota, sexo e profissão escolhidos. Quem está na rede da partida consegue ler essa lista.
+- **Perfil dos amigos:** cada amigo envia ao anfitrião só o sexo e a profissão escolhidos. O anfitrião associa o perfil ao **endereço Tailscale de quem enviou**, autenticado pelo WireGuard, então ninguém consegue alterar o perfil de outro jogador. São guardados no máximo 64 perfis por sessão, e valores fora do padrão são descartados.
 - **Lista recebida:** o PZLink dos amigos limita o que aceita (no máximo 16 jogadores, apelidos só com letras, números e hífen, ping entre 0 e 10 s), para que um anfitrião mal-intencionado não injete conteúdo na tela.
 - **Modelos e texturas:** lidos da instalação do Project Zomboid do próprio jogador e servidos só para a interface local (`127.0.0.1`). Os objetos do cenário vêm de uma lista fixa; não é possível pedir outros arquivos do disco.
 - **three.js:** incluído no executável (`web/vendor/three`). A página não carrega nada da internet.

@@ -66,7 +66,9 @@ Deixe o PZLink aberto enquanto joga.
 
 No topo do PZLink aparece um acampamento ao entardecer com os sobreviventes da partida: você no centro, o anfitrião e os amigos ao lado, cada um com apelido, nome do personagem e ping.
 
-- **O personagem é sorteado a partir do apelido**, com roupas, cabelo e tom de pele do próprio jogo. Todo mundo vê o mesmo boneco para a mesma pessoa. Troque o apelido para trocar de personagem.
+- **Monte o seu sobrevivente:** escolha o sexo (ou deixe aleatório) e a **profissão do jogo**, que define a roupa: policial de farda, médico de jaleco, bombeiro, chef... A ficha mostra as habilidades iniciais em barras, como na criação de personagem do jogo.
+- O rosto e o cabelo são sorteados a partir do apelido. Todo mundo vê o mesmo boneco para a mesma pessoa.
+- Cada placa mostra apelido, se o jogador está online e o ping. Passe o mouse para ver a ficha da profissão.
 - **Os modelos e as texturas vêm da sua instalação do Project Zomboid**, lidos na hora. Nenhum arquivo do jogo está neste repositório nem no executável. Sem o jogo instalado, o lobby mostra um aviso e o resto do PZLink funciona normalmente.
 - Se o jogo estiver numa pasta fora do padrão da Steam, defina a variável `PZ_HOME` com a pasta que contém `media`.
 - Quer ver o lobby cheio sem ninguém conectado? Abra o PZLink e acrescente `?demo=4` ao endereço no navegador.

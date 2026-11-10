@@ -16,14 +16,15 @@ import (
 
 // Character is a randomly dressed survivor, reproducible from its seed.
 type Character struct {
-	Seed      uint64     `json:"seed"`
-	Female    bool       `json:"female"`
-	Name      string     `json:"name"`
-	Outfit    string     `json:"outfit"`
-	Skin      int        `json:"skin"`
-	Hair      string     `json:"hair"`
-	Beard     string     `json:"beard,omitempty"`
-	HairColor [3]float64 `json:"hairColor"`
+	Seed       uint64     `json:"seed"`
+	Profession string     `json:"profession,omitempty"`
+	Female     bool       `json:"female"`
+	Name       string     `json:"name"`
+	Outfit     string     `json:"outfit"`
+	Skin       int        `json:"skin"`
+	Hair       string     `json:"hair"`
+	Beard      string     `json:"beard,omitempty"`
+	HairColor  [3]float64 `json:"hairColor"`
 
 	models   []piece
 	overlays []overlay
@@ -58,11 +59,25 @@ var (
 
 func pick[T any](r *rand.Rand, s []T) T { return s[r.IntN(len(s))] }
 
-// NewCharacter dresses a random survivor. The same seed gives the same result
-// on every PC with the same game version.
-func (c *Catalog) NewCharacter(seed uint64) (*Character, error) {
+// Options steer the random survivor: Sex is "m", "f" or anything else for
+// random; Profession picks outfits that fit it.
+type Options struct {
+	Sex        string
+	Profession string
+}
+
+// NewCharacter dresses a random survivor. The same seed and options give the
+// same result on every PC with the same game version.
+func (c *Catalog) NewCharacter(seed uint64, opt Options) (*Character, error) {
 	r := rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))
-	ch := &Character{Seed: seed, Female: r.IntN(2) == 0, Skin: 1 + r.IntN(5)}
+	female := r.IntN(2) == 0
+	switch opt.Sex {
+	case "m":
+		female = false
+	case "f":
+		female = true
+	}
+	ch := &Character{Seed: seed, Female: female, Skin: 1 + r.IntN(5), Profession: opt.Profession}
 	g := c.game
 
 	if ch.Female {
@@ -74,6 +89,19 @@ func (c *Catalog) NewCharacter(seed uint64) (*Character, error) {
 	outfits := c.MaleOutfits
 	if ch.Female {
 		outfits = c.FemOutfits
+	}
+	if want := professionOutfits[opt.Profession]; len(want) > 0 {
+		var fit []Outfit
+		for _, o := range outfits {
+			for _, w := range want {
+				if strings.EqualFold(o.Name, w) {
+					fit = append(fit, o)
+				}
+			}
+		}
+		if len(fit) > 0 {
+			outfits = fit
+		}
 	}
 	for attempt := 0; attempt < 8 && len(ch.models)+len(ch.overlays) == 0; attempt++ {
 		o := pick(r, outfits)

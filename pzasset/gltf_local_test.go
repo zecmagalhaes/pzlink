@@ -51,7 +51,7 @@ func TestLocalWriteCharacters(t *testing.T) {
 	}
 	t.Logf("roupas prontas: %d masc, %d fem; cabelos %d/%d; barbas %d", len(c.MaleOutfits), len(c.FemOutfits), len(c.MaleHair), len(c.FemHair), len(c.Beards))
 	for _, seed := range []uint64{1, 2, 3, 4} {
-		ch, err := c.NewCharacter(seed)
+		ch, err := c.NewCharacter(seed, Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -89,5 +89,35 @@ func TestLocalIdleSpeed(t *testing.T) {
 	t.Logf("velocidade do idle no jogo: %.3f", s)
 	if s < 0.1 || s > 1 {
 		t.Fatalf("velocidade inesperada %.3f", s)
+	}
+}
+
+func TestLocalProfessions(t *testing.T) {
+	g, err := openGame(filepath.Dir(gameMedia(t)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ps := g.Professions()
+	if len(ps) < 20 {
+		t.Fatalf("poucas profissões: %d", len(ps))
+	}
+	for _, p := range ps[:4] {
+		t.Logf("%-20s %-22s custo=%3d bônus=%v traços=%v", p.ID, p.Name, p.Cost, p.Boosts, p.Traits)
+	}
+	c, err := g.LoadCatalog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for prof := range professionOutfits {
+		for _, sex := range []string{"m", "f"} {
+			ch, err := c.NewCharacter(42, Options{Sex: sex, Profession: prof})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if (sex == "f") != ch.Female {
+				t.Errorf("%s/%s: sexo errado", prof, sex)
+			}
+			t.Logf("%-18s %s -> %s", prof, sex, ch.Outfit)
+		}
 	}
 }

@@ -181,22 +181,83 @@ function ringFor(level) {
 
 function makeLabel() {
   const el = document.createElement('div'); el.className = 'plate';
-  el.innerHTML = '<span class="tag"></span><div class="top"><span class="nick"></span><span class="ping"></span></div><div class="char"><span class="cname"></span></div>';
+  el.innerHTML = '<span class="tag"></span><div class="nick"></div>' +
+    '<div class="status"><span class="led"></span><span class="st"></span><span class="ms"></span></div><div class="prof"></div>';
+  el.addEventListener('mouseenter', () => showTip(el));
+  el.addEventListener('mouseleave', hideTip);
   labels.append(el); return el;
 }
 
+// ---------- ficha da profissão (barras como no jogo) ----------
+function profCard(p, extra) {
+  const card = document.createElement('div'); card.className = 'pzcard';
+  const h = document.createElement('h4'); h.textContent = p ? p.name : 'Sem profissão'; card.append(h);
+  const sub = document.createElement('div'); sub.className = 'sub2';
+  if (p) {
+    const cost = document.createElement('span'); cost.className = 'cost' + (p.cost < 0 ? ' neg' : '');
+    cost.textContent = `${p.cost > 0 ? '+' : ''}${p.cost} pontos`;
+    sub.append(cost);
+  }
+  if (extra) sub.append((p ? ' · ' : '') + extra);
+  card.append(sub);
+  const boosts = (p && p.boosts) || [];
+  if (!boosts.length) {
+    const n = document.createElement('div'); n.className = 'none'; n.textContent = 'Nenhuma habilidade inicial'; card.append(n);
+  }
+  for (const b of boosts) {
+    const row = document.createElement('div'); row.className = 'skill';
+    const name = document.createElement('span'); name.textContent = b.name;
+    const bars = document.createElement('span'); bars.className = 'bars';
+    for (let i = 0; i < 10; i++) { const x = document.createElement('i'); if (i < b.level) x.className = 'on'; bars.append(x); }
+    const lvl = document.createElement('span'); lvl.className = 'lvl'; lvl.textContent = '+' + b.level;
+    row.append(name, bars, lvl); card.append(row);
+  }
+  if (p && p.traits && p.traits.length) {
+    const t = document.createElement('div'); t.className = 'traits';
+    const b = document.createElement('b'); b.textContent = 'Traços: ';
+    t.append(b, p.traits.join(', ')); card.append(t);
+  }
+  return card;
+}
+window.pzProfCard = p => profCard(p);
+window.dispatchEvent(new Event('pz-cards-ready'));
+
+const tip = document.createElement('div'); tip.id = 'plate-tip'; tip.hidden = true; root.append(tip);
+let tipFor = null;
+function showTip(el) {
+  const e = [...players.values()].find(x => x.label === el);
+  if (!e) return;
+  tipFor = el;
+  const c = e.data.character;
+  const who = c ? `${c.name} · ${prettyOutfit(c.outfit)}` : '';
+  tip.replaceChildren(profCard(e.data.professionInfo, who));
+  tip.hidden = false; placeTip();
+}
+function hideTip() { tip.hidden = true; tipFor = null; }
+function placeTip() {
+  if (!tipFor) return;
+  const r = tipFor.getBoundingClientRect(), base = root.getBoundingClientRect();
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = r.left - base.left + r.width / 2 - w / 2, y = r.bottom - base.top + 10;
+  x = Math.max(8, Math.min(base.width - w - 8, x));
+  if (y + h > base.height - 8) y = Math.max(8, r.top - base.top - h - 10);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+
 function fillLabel(p, el) {
-  const tag = p.host ? 'ANFITRIÃO' : (p.self ? 'VOCÊ' : '');
+  const tag = p.host && p.self ? 'VOCÊ · ANFITRIÃO' : p.host ? 'ANFITRIÃO' : (p.self ? 'VOCÊ' : '');
   const tagEl = el.querySelector('.tag');
   tagEl.textContent = tag; tagEl.style.display = tag ? '' : 'none';
   tagEl.classList.toggle('host', !!p.host);
   el.querySelector('.nick').textContent = p.name;
-  const c = p.character;
-  el.querySelector('.cname').textContent = c ? c.name : '';
-  el.title = c ? `${c.name} · ${prettyOutfit(c.outfit)}` : '';
-  const ping = el.querySelector('.ping');
-  ping.className = 'ping ' + (p.level || 'wait');
-  ping.textContent = p.host ? 'servidor' : p.path === 'offline' ? 'offline' : (p.pingMs ? Math.round(p.pingMs) + ' ms' : '…');
+  const st = el.querySelector('.status');
+  st.classList.toggle('online', !!p.online);
+  st.querySelector('.st').textContent = p.online ? 'online' : 'offline';
+  const ms = st.querySelector('.ms');
+  ms.className = 'ms ' + (p.level || 'wait');
+  ms.textContent = !p.online ? '' : p.host ? '· servidor' : (p.pingMs ? '· ' + Math.round(p.pingMs) + ' ms' : '· …');
+  el.querySelector('.prof').textContent = p.professionInfo ? p.professionInfo.name : 'Sem profissão';
+  if (tipFor === el) showTip(el);
 }
 
 function prettyOutfit(o) {
@@ -213,9 +274,10 @@ function addPlayer(p, slot) {
   const entry = { group, mixer: null, data: p, label: makeLabel(), ring: ringFor(p.level), born: performance.now(), head: null, slot };
   group.add(entry.ring);
   fillLabel(p, entry.label);
-  players.set(p.seed, entry);
-  gltfLoader.load(`/pz/char/${p.seed}`, gltf => {
-    if (!players.has(p.seed)) return;
+  const key = playerKey(p);
+  players.set(key, entry);
+  gltfLoader.load(`/pz/char/${p.seed}?sex=${encodeURIComponent(p.sex || '')}&prof=${encodeURIComponent(p.profession || '')}`, gltf => {
+    if (players.get(key) !== entry) return;
     const model = gltf.scene;
     model.traverse(o => {
       if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; }
@@ -228,12 +290,16 @@ function addPlayer(p, slot) {
       act.play(); act.time = Math.random() * gltf.animations[0].duration;
       entry.mixer.timeScale = idleSpeed * (0.9 + Math.random() * 0.2);
     }
-  }, undefined, () => { entry.label.querySelector('.cname').textContent = 'personagem indisponível'; });
+  }, undefined, () => { entry.label.querySelector('.prof').textContent = 'personagem indisponível'; });
 }
+
+// a different sex or profession means a different model
+function playerKey(p) { return `${p.seed}|${p.sex || ''}|${p.profession || ''}`; }
 
 function removePlayer(seed) {
   const e = players.get(seed);
   if (!e) return;
+  if (tipFor === e.label) hideTip();
   scene.remove(e.group); e.label.remove(); players.delete(seed);
 }
 
@@ -242,8 +308,9 @@ function updatePlayers(list) {
   // você no centro; depois o anfitrião; depois os demais
   const order = [...list].sort((a, b) => (!!b.self - !!a.self) || (!!b.host - !!a.host) || a.name.localeCompare(b.name));
   order.forEach((p, i) => {
-    seen.add(p.seed);
-    const e = players.get(p.seed);
+    const key = playerKey(p);
+    seen.add(key);
+    const e = players.get(key);
     if (!e) { addPlayer(p, i); return; }
     e.data = p; fillLabel(p, e.label);
     e.ring.material.color.setHex(LEVEL_COLOR[p.level] || LEVEL_COLOR.wait);
@@ -303,6 +370,7 @@ function frame() {
     e.label.style.display = vis ? '' : 'none';
     e.label.style.transform = `translate(${(tmp.x * 0.5 + 0.5) * rect.width}px, ${(-tmp.y * 0.5 + 0.5) * rect.height}px) translate(-50%, -100%) scale(${scale.toFixed(3)})`;
   }
+  placeTip();
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -73,5 +74,58 @@ func TestLobbyRoutesWithoutGame(t *testing.T) {
 	csp := get("/").Header().Get("Content-Security-Policy")
 	if !strings.Contains(csp, "script-src 'self'") || strings.Contains(csp, "http") {
 		t.Fatalf("CSP inesperada: %s", csp)
+	}
+}
+
+func TestCleanProfile(t *testing.T) {
+	cases := map[profile]profile{
+		{Sex: "m", Profession: "PoliceOfficer"}: {Sex: "m", Profession: "policeofficer"},
+		{Sex: "x", Profession: "doctor"}:        {Sex: "r", Profession: "doctor"},
+		{Sex: "f", Profession: "../etc/passwd"}: {Sex: "f", Profession: ""},
+		{Sex: "f", Profession: "<b>hacker</b>"}: {Sex: "f", Profession: ""},
+		{Profession: strings.Repeat("a", 64)}:   {Sex: "r", Profession: ""},
+	}
+	for in, want := range cases {
+		if got := cleanProfile(in); got != want {
+			t.Errorf("%+v: veio %+v, esperava %+v", in, got, want)
+		}
+	}
+}
+
+// A guest can only set the profile of its own tailnet address, and the host
+// remembers at most 64 devices.
+func TestSetProfileBounded(t *testing.T) {
+	a := newApp(t.TempDir())
+	for i := 0; i < 100; i++ {
+		a.setProfile(fmt.Sprintf("100.100.0.%d", i), profile{Sex: "f", Profession: "doctor"})
+	}
+	if len(a.profiles) != 64 {
+		t.Fatalf("perfis sem limite: %d", len(a.profiles))
+	}
+	a.setProfile("100.100.0.1", profile{Sex: "m", Profession: "chef"}) // already known: updates
+	if a.profiles["100.100.0.1"].Profession != "chef" {
+		t.Fatal("perfil conhecido não foi atualizado")
+	}
+}
+
+func TestProfileEndpoint(t *testing.T) {
+	t.Setenv("PZ_HOME", t.TempDir())
+	a := newApp(t.TempDir())
+	h := a.routes(7468)
+	r := httptest.NewRequest("POST", "http://127.0.0.1:7468/api/profile",
+		strings.NewReader(`{"nick":"Marina","sex":"f","profession":"policeofficer"}`))
+	r.Host = "127.0.0.1:7468"
+	r.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != 200 {
+		t.Fatalf("perfil recusado: %d %s", w.Code, w.Body)
+	}
+	if a.cfg.Nick != "marina" || a.cfg.Sex != "f" || a.cfg.Profession != "policeofficer" {
+		t.Fatalf("perfil não salvo: %+v", a.cfg)
+	}
+	st := a.lobby()
+	if len(st.Players) != 1 || st.Players[0].Online || st.Players[0].Name != "marina" {
+		t.Fatalf("lobby sem conexão inesperado: %+v", st.Players)
 	}
 }

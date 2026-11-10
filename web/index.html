@@ -62,19 +62,44 @@
   #lobby::after { content: ""; position: absolute; inset: auto 0 0 0; height: 50px; pointer-events: none;
     background: linear-gradient(to bottom, transparent, var(--bg)); }
   .plate { position: absolute; left: 0; top: 0; will-change: transform; transform-origin: 50% 100%; white-space: nowrap; text-align: center;
-    background: rgba(16,15,12,.68); border: 1px solid rgba(255,255,255,.09); border-radius: 8px; padding: 4px 9px 5px;
-    box-shadow: 0 4px 14px rgba(0,0,0,.35); backdrop-filter: blur(3px); }
+    background: rgba(16,15,12,.72); border: 1px solid rgba(255,255,255,.09); border-radius: 8px; padding: 6px 10px 5px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.35); backdrop-filter: blur(3px); pointer-events: auto; cursor: default; }
   .plate::after { content: ""; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%) rotate(45deg);
-    width: 8px; height: 8px; background: rgba(16,15,12,.68); border-right: 1px solid rgba(255,255,255,.09); border-bottom: 1px solid rgba(255,255,255,.09); }
-  .plate .top { display: flex; align-items: center; justify-content: center; gap: 6px; }
+    width: 8px; height: 8px; background: rgba(16,15,12,.72); border-right: 1px solid rgba(255,255,255,.09); border-bottom: 1px solid rgba(255,255,255,.09); }
   .plate .tag { position: absolute; left: 50%; top: -9px; transform: translateX(-50%); font-size: 8.5px; font-weight: 800; letter-spacing: .8px;
     padding: 1px 6px; border-radius: 3px; background: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
   .plate .tag.host { background: #b8862b; }
-  .plate .nick { font-size: 14px; font-weight: 800; letter-spacing: .2px; color: #f3ecdc; }
-  .plate .ping { font: 700 10px ui-monospace, Consolas, monospace; padding: 1px 6px; border-radius: 99px; background: rgba(255,255,255,.07); color: var(--muted); }
-  .plate .ping.good { color: var(--good); } .plate .ping.ok { color: var(--ok); } .plate .ping.bad { color: var(--bad); }
-  .plate .char { margin-top: 1px; font-size: 10.5px; color: #b9b09b; max-width: 120px; margin-inline: auto; overflow: hidden; text-overflow: ellipsis; }
-  .plate .tag:not([style*="none"]) ~ .top { margin-top: 3px; }
+  .plate .nick { font-size: 14px; font-weight: 800; letter-spacing: .2px; color: #f3ecdc; line-height: 1.2; }
+  .plate .status { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 2px;
+    font: 700 10px ui-monospace, Consolas, monospace; color: var(--muted); }
+  .plate .status .led { width: 7px; height: 7px; border-radius: 50%; background: #6b6658; box-shadow: 0 0 0 2px rgba(0,0,0,.25); }
+  .plate .status.online .led { background: var(--good); box-shadow: 0 0 6px var(--good); }
+  .plate .status .ms.good { color: var(--good); } .plate .status .ms.ok { color: var(--ok); } .plate .status .ms.bad { color: var(--bad); }
+  .plate .prof { margin-top: 2px; font-size: 10.5px; color: #c9b98f; max-width: 130px; margin-inline: auto; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ficha da profissão, no espírito das dicas do jogo */
+  .pzcard { background: rgba(8,8,8,.92); border: 1px solid #5c5c5c; border-radius: 2px; padding: 8px 10px 9px; min-width: 230px;
+    font: 12px/1.35 "Segoe UI", Tahoma, Arial, sans-serif; color: #e6e6e6; text-align: left; white-space: normal; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
+  .pzcard h4 { margin: 0 0 1px; font-size: 13px; font-weight: 700; color: #fff; }
+  .pzcard .sub2 { font-size: 11px; color: #a8a8a8; margin-bottom: 6px; }
+  .pzcard .cost { color: #8ec06c; } .pzcard .cost.neg { color: #e0705a; }
+  .pzcard .skill { display: grid; grid-template-columns: 1fr auto 22px; align-items: center; gap: 8px; margin: 2px 0; }
+  .pzcard .bars { display: flex; gap: 2px; }
+  .pzcard .bars i { width: 7px; height: 9px; border: 1px solid #6f6f6f; background: #1c1c1c; }
+  .pzcard .bars i.on { background: #e9e2c9; border-color: #e9e2c9; }
+  .pzcard .lvl { color: #8ec06c; font-weight: 700; text-align: right; }
+  .pzcard .traits { margin-top: 6px; color: #b8b8b8; font-size: 11px; }
+  .pzcard .traits b { color: #e6e6e6; font-weight: 600; }
+  .pzcard .none { color: #8c8c8c; font-style: italic; }
+  #plate-tip { position: absolute; z-index: 500; pointer-events: none; }
+
+  .seg { display: flex; gap: 6px; }
+  .seg button { flex: 1; background: #12110d; color: var(--muted); border: 1px solid var(--line); padding: 8px 10px; font-weight: 600; }
+  .seg button:hover { background: #2a2720; color: var(--text); border-color: #5a5346; }
+  .seg button.on, .seg button.on:hover { background: #2a1c18; color: var(--text); border-color: var(--accent); }
+  select { width: 100%; background: #12110d; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 10px; font: inherit; }
+  #prof-card { margin-top: 10px; }
+  #prof-card .pzcard { min-width: 0; }
   #lobby-msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 420px; text-align: center;
     background: rgba(20,19,15,.85); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; color: var(--muted); }
   #lobby-brand { position: absolute; left: 16px; top: 12px; font-weight: 800; font-size: 22px; letter-spacing: .5px;
@@ -94,13 +119,25 @@
 
   <div id="error" class="err hidden"></div>
 
+  <!-- ===== seu sobrevivente ===== -->
+  <div class="card" id="avatar">
+    <b>Seu sobrevivente</b>
+    <label for="nick">Apelido</label>
+    <input id="nick" maxlength="30" placeholder="ex.: joao">
+    <label>Sexo</label>
+    <div class="seg" id="sex">
+      <button data-sex="r" class="on">Aleatório</button>
+      <button data-sex="m">Masculino</button>
+      <button data-sex="f">Feminino</button>
+    </div>
+    <label for="prof">Profissão</label>
+    <select id="prof"></select>
+    <div id="prof-card"></div>
+    <div class="hint" id="avatar-hint">O apelido sorteia o rosto e o cabelo; a profissão escolhe a roupa. Os amigos veem o mesmo personagem.</div>
+  </div>
+
   <!-- ===== tela inicial ===== -->
   <section id="setup">
-    <div class="card">
-      <label for="nick" style="margin-top:0">Seu apelido</label>
-      <input id="nick" maxlength="30" placeholder="ex.: joao">
-      <div class="hint" style="margin-top:6px">O apelido define o seu sobrevivente no lobby. Os amigos veem o mesmo personagem.</div>
-    </div>
     <div class="tabs">
       <button id="tab-join" class="on">Entrar numa partida</button>
       <button id="tab-host">Hospedar</button>
@@ -219,13 +256,42 @@ async function act(btn, path, body) {
 }
 $('btn-join').onclick = () => act($('btn-join'), '/api/join', { nick: $('nick').value, invite: $('invite').value });
 $('btn-host').onclick = () => act($('btn-host'), '/api/host', { key: $('key').value, guestKey: $('guestkey').value, nick: $('nick').value });
-let nickTimer;
-$('nick').addEventListener('input', () => {
-  clearTimeout(nickTimer);
-  nickTimer = setTimeout(async () => {
-    try { await post('/api/nick', { nick: $('nick').value }); window.pzLobbyRefresh && window.pzLobbyRefresh(); } catch {}
-  }, 500);
-});
+// ---------- seu sobrevivente ----------
+let profTimer, professions = [], sex = 'r';
+function saveProfile(delay = 400) {
+  clearTimeout(profTimer);
+  profTimer = setTimeout(async () => {
+    try {
+      await post('/api/profile', { nick: $('nick').value, sex, profession: $('prof').value });
+      window.pzLobbyRefresh && window.pzLobbyRefresh();
+    } catch (e) { showErr(e.message); }
+  }, delay);
+}
+function setSex(v) {
+  sex = v;
+  document.querySelectorAll('#sex button').forEach(b => b.classList.toggle('on', b.dataset.sex === v));
+}
+document.querySelectorAll('#sex button').forEach(b => b.onclick = () => { setSex(b.dataset.sex); saveProfile(0); });
+$('nick').addEventListener('input', () => saveProfile());
+$('prof').addEventListener('change', () => { showProf(); saveProfile(0); });
+function showProf() {
+  const p = professions.find(x => x.id === $('prof').value);
+  const box = $('prof-card'); box.replaceChildren();
+  if (p && window.pzProfCard) box.append(window.pzProfCard(p));
+}
+async function loadProfessions(selected) {
+  try { professions = await (await fetch('/api/professions')).json(); } catch { professions = []; }
+  const sel = $('prof'); sel.replaceChildren();
+  const none = document.createElement('option'); none.value = ''; none.textContent = 'Sem profissão (roupa aleatória)'; sel.append(none);
+  for (const p of professions) {
+    const o = document.createElement('option'); o.value = p.id;
+    o.textContent = `${p.name}  (${p.cost > 0 ? '+' : ''}${p.cost} pts)`;
+    sel.append(o);
+  }
+  sel.value = selected || '';
+  showProf();
+}
+window.addEventListener('pz-cards-ready', showProf);
 $('btn-stop').onclick = () => act($('btn-stop'), '/api/stop');
 $('forget').onclick = e => { e.preventDefault(); act($('btn-host'), '/api/forget-key'); };
 $('btn-copy').onclick = async () => {
@@ -273,8 +339,12 @@ function render(s) {
   if (!filledOnce) {
     filledOnce = true;
     if (s.nick) $('nick').value = s.nick;
+    setSex(s.sex || 'r');
+    loadProfessions(s.profession);
     if (s.hasKey) setTab('host');
   }
+  $('nick').disabled = running;
+  $('nick').title = running ? 'O apelido só pode mudar desconectado' : '';
   $('key-saved').classList.toggle('hidden', !s.hasKey);
   $('guestkey').placeholder = s.hasGuestKey ? 'salva neste PC (deixe vazio para usar)' : 'opcional';
   if (!running) return;
