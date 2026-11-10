@@ -1,0 +1,51 @@
+name: Problema
+description: Algo não funcionou como deveria
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Achou uma falha de segurança?** Não abra issue: use **Security → Report a vulnerability**.
+        **Nunca cole aqui o código de convite nem a chave do Tailscale** (tskey-...).
+  - type: dropdown
+    id: papel
+    attributes:
+      label: Você estava
+      options: [Hospedando, Entrando na partida de alguém]
+    validations:
+      required: true
+  - type: input
+    id: versao
+    attributes:
+      label: Versão do PZLink
+      description: Aparece no topo da tela do PZLink
+      placeholder: v0.3.0-beta
+    validations:
+      required: true
+  - type: dropdown
+    id: so
+    attributes:
+      label: Sistema
+      options: [Windows, Linux]
+    validations:
+      required: true
+  - type: input
+    id: jogo
+    attributes:
+      label: Versão do Project Zomboid
+      placeholder: "42.21"
+  - type: textarea
+    id: oque
+    attributes:
+      label: O que aconteceu
+      description: O que você fez, o que esperava e o que apareceu. Fotos da tela ajudam.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: pzlink.log
+      description: |
+        Windows: `%APPDATA%\pzlink\pzlink.log` · Linux: `~/.config/pzlink/pzlink.log`.
+        O PZLink já esconde chaves e IPs públicos, mas confira antes de colar.
+      render: text

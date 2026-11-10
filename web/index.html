@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PZLink</title>
+<style>
+  :root {
+    --bg: #14130f; --card: #1f1d17; --line: #34312a; --text: #ece6d6; --muted: #a39b88;
+    --accent: #c8402f; --accent2: #e0574a; --good: #5fae5a; --ok: #d6a531; --bad: #d4513f; --wait: #7c8796;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: .5px; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); margin: 2px 0 20px; font-size: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 14px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tabs button { flex: 1; background: var(--card); color: var(--muted); border: 1px solid var(--line); }
+  .tabs button.on { color: var(--text); border-color: var(--accent); background: #2a1c18; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  input, textarea { width: 100%; background: #12110d; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 10px; font: inherit; }
+  textarea { font-family: ui-monospace, Consolas, monospace; font-size: 12px; resize: vertical; min-height: 70px; word-break: break-all; }
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 11px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover { background: var(--accent2); }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row > * { flex: 0 0 auto; }
+  .grow { flex: 1 1 auto !important; }
+  .hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .hint a { color: var(--accent2); }
+  .err { background: #3a1915; border: 1px solid var(--bad); color: #ffd9d3; border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; }
+  .status { display: flex; align-items: center; gap: 10px; font-size: 17px; font-weight: 600; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--wait); flex: none; }
+  .dot.good { background: var(--good); } .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+  .dot.pulse { animation: p 1.2s infinite; } @keyframes p { 50% { opacity: .3; } }
+  .big { font-family: ui-monospace, Consolas, monospace; font-size: 20px; background: #12110d; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .stat { background: #12110d; border: 1px solid var(--line); border-radius: 8px; padding: 8px; text-align: center; }
+  .stat b { display: block; font-size: 18px; } .stat small { color: var(--muted); font-size: 11px; }
+  canvas { width: 100%; height: 60px; display: block; margin-top: 10px; }
+  .peer { border-top: 1px solid var(--line); padding: 12px 0 4px; }
+  .peer:first-child { border-top: 0; padding-top: 0; }
+  .peer .row { justify-content: space-between; }
+  .verdict { font-size: 13px; padding: 2px 8px; border-radius: 99px; background: #2b2a26; }
+  .verdict.good { color: var(--good); } .verdict.ok { color: var(--ok); } .verdict.bad { color: var(--bad); }
+  ol { margin: 8px 0 0; padding-left: 20px; } li { margin: 4px 0; }
+  .hidden { display: none !important; }
+  @media (max-width: 480px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>PZ<span>Link</span></h1>
+  <div class="sub">Project Zomboid com os amigos, sem VPS e sem abrir portas. <span id="ver"></span></div>
+
+  <div id="error" class="err hidden"></div>
+
+  <!-- ===== tela inicial ===== -->
+  <section id="setup">
+    <div class="tabs">
+      <button id="tab-join" class="on">Entrar numa partida</button>
+      <button id="tab-host">Hospedar</button>
+    </div>
+
+    <div id="pane-join" class="card">
+      <label for="nick">Seu apelido</label>
+      <input id="nick" maxlength="30" placeholder="ex.: joao">
+      <label for="invite">Código de convite (o anfitrião manda)</label>
+      <textarea id="invite" placeholder="PZL1-..."></textarea>
+      <div class="row" style="margin-top:14px"><button id="btn-join">Entrar</button></div>
+    </div>
+
+    <div id="pane-host" class="card hidden">
+      <ol>
+        <li>No jogo, clique em <b>Hospedar</b> e abra o mundo.</li>
+        <li>Cole aqui a sua chave do Tailscale e clique em <b>Iniciar</b>.</li>
+        <li>Mande o código de convite para os amigos.</li>
+      </ol>
+      <div id="key-saved" class="hint hidden">✔ Chave salva neste PC. Deixe o campo vazio para usá-la. <a href="#" id="forget">Esquecer chave</a></div>
+      <label for="key">Chave do Tailscale (tskey-auth-...)</label>
+      <input id="key" type="password" autocomplete="off" placeholder="tskey-auth-...">
+      <details style="margin-top:12px">
+        <summary class="hint" style="cursor:pointer;margin:0">Mais seguro: chave separada para os convidados (opcional)</summary>
+        <div class="hint">Gere uma <b>segunda</b> chave (Reusable + Ephemeral) e cole aqui. O convite passa a levar só esta chave,
+          e a sua continua só neste PC. Se o convite vazar, você apaga só a chave dos convidados.</div>
+        <label for="guestkey">Chave dos convidados (tskey-auth-...)</label>
+        <input id="guestkey" type="password" autocomplete="off" placeholder="opcional">
+      </details>
+      <div class="row" style="margin-top:14px"><button id="btn-host">Iniciar</button></div>
+      <div class="hint">Não tem chave? Crie uma conta grátis em <a href="https://login.tailscale.com" target="_blank" rel="noopener noreferrer">login.tailscale.com</a>
+        (de preferência uma conta só para o PZLink), abra <a href="https://login.tailscale.com/admin/settings/keys" target="_blank" rel="noopener noreferrer">Settings → Keys</a>,
+        clique em <b>Generate auth key</b> e marque <b>Reusable</b> e <b>Ephemeral</b>.</div>
+    </div>
+  </section>
+
+  <!-- ===== rodando ===== -->
+  <section id="running" class="hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="status"><div id="sdot" class="dot pulse"></div><span id="stext">...</span></div>
+        <button class="ghost" id="btn-stop">Parar</button>
+      </div>
+      <div id="traffic" class="hint"></div>
+    </div>
+
+    <!-- anfitrião -->
+    <div id="host-view" class="hidden">
+      <div id="others-warn" class="err hidden"></div>
+      <div class="card">
+        <div class="status"><div id="gdot" class="dot"></div><span id="gtext"></span></div>
+        <div class="hint" id="ghint"></div>
+      </div>
+      <div class="card" id="invite-card">
+        <b>Código de convite</b>
+        <div class="hint" style="margin-top:2px" id="invite-hint">Mande só para quem vai jogar com você. Ele contém a sua chave do Tailscale.</div>
+        <textarea id="invite-out" readonly style="margin-top:10px"></textarea>
+        <div class="row" style="margin-top:8px"><button id="btn-copy">Copiar convite</button><span id="copied" class="hint hidden">copiado!</span></div>
+      </div>
+      <div class="card">
+        <b>Amigos conectados</b>
+        <div id="peers" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- amigo -->
+    <div id="join-view" class="hidden">
+      <div class="card">
+        <b>Conexão com o anfitrião</b> <span id="verdict" class="verdict"></span>
+        <div class="stats">
+          <div class="stat"><b id="s-avg">-</b><small>ping médio</small></div>
+          <div class="stat"><b id="s-jit">-</b><small>variação</small></div>
+          <div class="stat"><b id="s-loss">-</b><small>perda</small></div>
+          <div class="stat"><b id="s-path" style="font-size:14px">-</b><small>rota</small></div>
+        </div>
+        <canvas id="chart"></canvas>
+        <div class="hint" id="path-hint"></div>
+      </div>
+      <div class="card">
+        <b>No jogo</b>
+        <ol>
+          <li>Vá em <b>Entrar</b> e adicione um servidor (<b>Adicionar/Editar</b>).</li>
+          <li>IP: <span class="big">127.0.0.1</span> &nbsp; Porta: <span class="big" id="port-out">16261</span></li>
+          <li>Use o mesmo usuário e senha que o anfitrião configurou (ou deixe a senha em branco).</li>
+        </ol>
+        <div class="hint">Deixe o PZLink aberto enquanto joga.</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let tab = 'join', filledOnce = false, lastState = null;
+
+function setTab(t) {
+  tab = t;
+  $('tab-join').classList.toggle('on', t === 'join');
+  $('tab-host').classList.toggle('on', t === 'host');
+  $('pane-join').classList.toggle('hidden', t !== 'join');
+  $('pane-host').classList.toggle('hidden', t !== 'host');
+}
+$('tab-join').onclick = () => setTab('join');
+$('tab-host').onclick = () => setTab('host');
+
+async function post(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'erro ' + r.status);
+  return j;
+}
+function showErr(msg) { $('error').textContent = msg || ''; $('error').classList.toggle('hidden', !msg); }
+
+async function act(btn, path, body) {
+  btn.disabled = true; showErr('');
+  try { await post(path, body); await refresh(); } catch (e) { showErr(e.message); }
+  btn.disabled = false;
+}
+$('btn-join').onclick = () => act($('btn-join'), '/api/join', { nick: $('nick').value, invite: $('invite').value });
+$('btn-host').onclick = () => act($('btn-host'), '/api/host', { key: $('key').value, guestKey: $('guestkey').value });
+$('btn-stop').onclick = () => act($('btn-stop'), '/api/stop');
+$('forget').onclick = e => { e.preventDefault(); act($('btn-host'), '/api/forget-key'); };
+$('btn-copy').onclick = async () => {
+  const t = $('invite-out');
+  try { await navigator.clipboard.writeText(t.value); } catch { t.select(); document.execCommand('copy'); }
+  $('copied').classList.remove('hidden'); setTimeout(() => $('copied').classList.add('hidden'), 2000);
+};
+
+const fmtMs = v => v ? Math.round(v) + ' ms' : '-';
+function fmtBytes(n) { const u = ['B','KB','MB','GB']; let i = 0; while (n >= 1024 && i < 3) { n /= 1024; i++; } return n.toFixed(i ? 1 : 0) + ' ' + u[i]; }
+function fmtTime(s) { const h = Math.floor(s/3600), m = Math.floor(s%3600/60); return h ? `${h}h${String(m).padStart(2,'0')}` : `${m} min`; }
+
+function drawChart(hist) {
+  const c = $('chart'), dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth, h = c.clientHeight;
+  c.width = w * dpr; c.height = h * dpr;
+  const g = c.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0, 0, w, h);
+  if (!hist || !hist.length) return;
+  const max = Math.max(160, ...hist);
+  const y = v => h - 4 - (v / max) * (h - 8);
+  g.strokeStyle = '#34312a'; g.setLineDash([3, 3]);
+  [80, 150].forEach(v => { g.beginPath(); g.moveTo(0, y(v)); g.lineTo(w, y(v)); g.stroke(); });
+  g.setLineDash([]);
+  const step = w / 59;
+  g.strokeStyle = '#e0574a'; g.lineWidth = 2; g.beginPath();
+  let pen = false;
+  hist.forEach((v, i) => {
+    const x = (60 - hist.length + i) * step;
+    if (v < 0) { pen = false; g.fillStyle = '#d4513f'; g.fillRect(x - 1, h - 6, 3, 6); return; }
+    pen ? g.lineTo(x, y(v)) : g.moveTo(x, y(v)); pen = true;
+  });
+  g.stroke();
+}
+
+function setDot(el, level, pulse) { el.className = 'dot ' + (level || '') + (pulse ? ' pulse' : ''); }
+
+function render(s) {
+  lastState = s;
+  $('ver').textContent = s.version;
+  if (s.error) showErr(s.error);
+  const running = !!s.mode;
+  $('setup').classList.toggle('hidden', running);
+  $('running').classList.toggle('hidden', !running);
+
+  if (!filledOnce) {
+    filledOnce = true;
+    if (s.nick) $('nick').value = s.nick;
+    if (s.hasKey) setTab('host');
+  }
+  $('key-saved').classList.toggle('hidden', !s.hasKey);
+  $('guestkey').placeholder = s.hasGuestKey ? 'salva neste PC (deixe vazio para usar)' : 'opcional';
+  if (!running) return;
+
+  const ready = s.phase === 'hospedando' || s.phase === 'conectado';
+  $('stext').textContent = ready ? (s.mode === 'host' ? 'Hospedando' : 'Conectado ao anfitrião') : s.phase;
+  setDot($('sdot'), ready ? 'good' : '', !ready);
+  $('traffic').textContent = ready
+    ? `Seu IP na rede: ${s.selfIP}  ·  enviado ${fmtBytes(s.upBytes)} / recebido ${fmtBytes(s.downBytes)}  ·  ${fmtTime(s.uptime)}`
+    : '';
+
+  $('host-view').classList.toggle('hidden', s.mode !== 'host' || !ready);
+  $('join-view').classList.toggle('hidden', s.mode !== 'join' || !ready);
+
+  if (s.mode === 'host' && ready) {
+    setDot($('gdot'), s.gameRunning ? 'good' : 'bad');
+    $('gtext').textContent = s.gameRunning ? 'Servidor do jogo aberto' : 'Servidor do jogo não encontrado';
+    $('ghint').textContent = s.gameRunning
+      ? `O jogo está usando a porta ${s.ports[0]}. Os amigos já podem entrar.`
+      : `No Project Zomboid, clique em Hospedar e abra o mundo. A porta ${s.ports[0]} ainda está livre.`;
+    if ($('invite-out').value !== s.invite) $('invite-out').value = s.invite;
+    $('invite-hint').textContent = s.guestKeyOn
+      ? 'Mande só para quem vai jogar com você. Ele leva a chave dos convidados; a sua chave fica só neste PC.'
+      : 'Mande só para quem vai jogar com você. Ele contém a sua chave do Tailscale: trate como uma senha.';
+    renderPeers(s.peers);
+    const others = s.others || [];
+    $('others-warn').classList.toggle('hidden', !others.length);
+    $('others-warn').textContent = others.length
+      ? `⚠ Atenção: a sua conta do Tailscale tem outros aparelhos (${others.join(', ')}). Quem tiver o convite também consegue alcançá-los. Use uma conta do Tailscale só para o PZLink.`
+      : '';
+  }
+  if (s.mode === 'join' && ready && s.hostPing) {
+    const p = s.hostPing;
+    $('verdict').textContent = p.verdict; $('verdict').className = 'verdict ' + p.level;
+    $('s-avg').textContent = fmtMs(p.avgMs);
+    $('s-jit').textContent = p.samples > 1 ? Math.round(p.jitterMs) + ' ms' : '-';
+    $('s-loss').textContent = p.samples ? p.lossPct.toFixed(0) + '%' : '-';
+    $('s-path').textContent = p.path || '-';
+    $('port-out').textContent = s.ports[0];
+    $('path-hint').textContent = p.path && p.path.startsWith('via relay')
+      ? 'A conexão está passando por um servidor intermediário do Tailscale, o que aumenta o ping. Costuma virar "direta" sozinha em alguns segundos; se não virar, ligar o UPnP no roteador ajuda.'
+      : 'Linhas tracejadas: 80 ms (ótimo) e 150 ms (limite do jogável). Marcas vermelhas embaixo são pacotes perdidos.';
+    drawChart(p.history);
+  }
+}
+
+function renderPeers(peers) {
+  const box = $('peers');
+  box.replaceChildren();
+  if (!peers.length) {
+    const d = document.createElement('div'); d.className = 'hint'; d.style.marginTop = 0;
+    d.textContent = 'Ninguém ainda. Mande o convite e peça para eles clicarem em Entrar.';
+    box.append(d); return;
+  }
+  for (const p of peers) {
+    const el = document.createElement('div'); el.className = 'peer';
+    const row = document.createElement('div'); row.className = 'row';
+    const left = document.createElement('div'); left.className = 'status'; left.style.fontSize = '15px';
+    const dot = document.createElement('div'); setDot(dot, p.online ? p.ping.level : 'bad', false);
+    const name = document.createElement('span'); name.textContent = p.name + (p.online ? '' : ' (offline)');
+    left.append(dot, name);
+    const v = document.createElement('span'); v.className = 'verdict ' + (p.online ? p.ping.level : '');
+    v.textContent = p.online ? p.ping.verdict : 'desconectado';
+    row.append(left, v);
+    const info = document.createElement('div'); info.className = 'hint'; info.style.marginTop = '4px';
+    info.textContent = p.online
+      ? `ping ${fmtMs(p.ping.avgMs)} · variação ${Math.round(p.ping.jitterMs || 0)} ms · perda ${(p.ping.lossPct || 0).toFixed(0)}% · ${p.ping.path || '-'}`
+      : p.ip;
+    el.append(row, info); box.append(el);
+  }
+}
+
+async function refresh() {
+  try { render(await (await fetch('/api/state')).json()); }
+  catch { $('stext').textContent = 'PZLink fechado'; setDot($('sdot'), 'bad'); }
+}
+refresh(); setInterval(refresh, 1000);
+window.addEventListener('resize', () => lastState && lastState.hostPing && drawChart(lastState.hostPing.history));
+</script>
+</body>
+</html>

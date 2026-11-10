@@ -1,0 +1,13 @@
+# binários
+/pzlink
+/pzlink.exe
+/pzlink-*
+/dist/
+
+# ferramentas locais (Go portátil)
+/.tools/
+
+# estado do Tailscale e configurações locais (contêm chaves!)
+/state/
+*.key
+config.json
