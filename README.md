@@ -13,6 +13,7 @@ O PZLink liga o PC de quem entra ao PC de quem hospeda, como se todos estivessem
 - **Só quem hospeda cria uma conta** (grátis, no Tailscale). Quem entra não cria conta nenhuma.
 - Um arquivo só: não instala nada e não precisa de administrador.
 - Mostra ping, variação e perda de pacotes, e avisa se a conexão está boa para jogar.
+- **Lobby 3D:** os sobreviventes conectados aparecem lado a lado num acampamento, com apelido e ping sobre a cabeça.
 
 > 🧪 **Beta.** Já testado numa partida real (Build 42.21, Windows). Problemas? Abra uma [issue](../../issues/new/choose).
 
@@ -60,6 +61,15 @@ Deixe o PZLink aberto enquanto joga.
 > ⚠️ Trate o convite como uma senha. Se vazar, apague a chave usada nele em <https://login.tailscale.com/admin/settings/keys>.
 
 ---
+
+## Lobby 3D
+
+No topo do PZLink aparece um acampamento ao entardecer com os sobreviventes da partida: você no centro, o anfitrião e os amigos ao lado, cada um com apelido, nome do personagem e ping.
+
+- **O personagem é sorteado a partir do apelido**, com roupas, cabelo e tom de pele do próprio jogo. Todo mundo vê o mesmo boneco para a mesma pessoa. Troque o apelido para trocar de personagem.
+- **Os modelos e as texturas vêm da sua instalação do Project Zomboid**, lidos na hora. Nenhum arquivo do jogo está neste repositório nem no executável. Sem o jogo instalado, o lobby mostra um aviso e o resto do PZLink funciona normalmente.
+- Se o jogo estiver numa pasta fora do padrão da Steam, defina a variável `PZ_HOME` com a pasta que contém `media`.
+- Quer ver o lobby cheio sem ninguém conectado? Abra o PZLink e acrescente `?demo=4` ao endereço no navegador.
 
 ## Problemas comuns
 
@@ -133,4 +143,4 @@ Quer ajudar? Veja o [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licença e avisos
 
-[MIT](LICENSE). O PZLink não tem ligação com a The Indie Stone (Project Zomboid) nem com a Tailscale Inc. "Tailscale" e "Project Zomboid" são marcas dos respectivos donos.
+[MIT](LICENSE). Inclui o [three.js](https://threejs.org) (MIT, licença em `web/vendor/three/LICENSE`). O PZLink não tem ligação com a The Indie Stone (Project Zomboid) nem com a Tailscale Inc. "Tailscale" e "Project Zomboid" são marcas dos respectivos donos.

@@ -16,6 +16,8 @@ Objetivo: jogar Project Zomboid entre Windows e Linux sem VPS e sem abrir portas
 - [x] 3. Builds para Windows e Linux + release automática no GitHub (tag `v*`; tag com `-` vira pré-lançamento)
 - [x] 4. Teste real com um amigo (2026-11-08): túnel funcionou; bloqueios eram do jogo (convite Steam na B42, Steam Relay, modo debug)
 - [x] 5. Auditoria de segurança e preparo para a comunidade (2026-11-09): ver "Auditoria" abaixo
+- [x] 8. Lobby 3D (2026-11-09): conversor .X → glTF próprio (`pzasset`), personagem aleatório por apelido com roupas prontas do jogo, cena de acampamento com objetos do jogo, lista de jogadores publicada pelo anfitrião no túnel
+- [ ] 9. Lobby: chapéus/óculos (itens presos a ossos), máscaras de corpo sob roupas, testar a lista de jogadores numa partida real
 - [ ] 6. Testar a receita de ACL com `tag:pzguest` numa partida real
 - [ ] 7. Confirmar o fim da queda por modo debug no PC do amigo
 
@@ -36,3 +38,9 @@ Corrigido:
 ## Riscos a confirmar no teste real
 - O servidor do jogo vê todos os amigos com o IP 127.0.0.1 (portas diferentes). Se o jogo bloquear várias conexões do mesmo IP, isso precisa de outra solução.
 - Confirmar se o jogo usa só as portas 16261/16262 numa conexão por IP com a Steam ligada.
+
+## Lobby 3D: decisões
+- Nenhum arquivo do jogo é distribuído: modelos e texturas são lidos da instalação de cada jogador em tempo de execução.
+- `.X` (DirectX, texto) convertido para glTF em Go. Convenções confirmadas por teste: matrizes .X lidas como coluna, espelho em Z, quatérnios conjugados.
+- O "saiote" do corpo (ossos `Bip01_Dress*`) é escondido pelo recorte de transparência da textura da pele, como no jogo; vestidos e saias pintados na textura o fazem aparecer.
+- Personagem = semente FNV-64 do apelido; roupas sorteadas entre as roupas prontas do `clothing.xml` (sem testes e fantasias).

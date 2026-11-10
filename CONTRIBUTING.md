@@ -41,3 +41,8 @@ go run golang.org/x/vuln/cmd/govulncheck@latest ./...   # vulnerabilidades conhe
 | `ui.go`, `web/index.html` | Interface local no navegador |
 | `logsafe.go` | Esconde chaves e IPs públicos do log |
 | `gameprobe.go`, `listen_*.go` | Detecta se o servidor do jogo está aberto |
+| `lobby.go`, `web/lobby.js` | Lobby 3D: lista de jogadores e cena |
+| `pzasset/` | Lê os arquivos do jogo instalado: modelos `.X` → glTF, roupas, cabelos, objetos |
+| `web/vendor/three/` | three.js (MIT), sem alterações |
+
+**Nunca adicione arquivos do Project Zomboid ao repositório** (modelos, texturas, imagens tiradas deles). O PZLink lê tudo da instalação de quem usa. Os testes em `pzasset/*_local_test.go` usam o jogo instalado e são pulados quando ele não existe (como no CI); defina `PZ_MEDIA` se o seu jogo estiver em outra pasta.

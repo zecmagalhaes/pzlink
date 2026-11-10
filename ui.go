@@ -1,20 +1,22 @@
 package main
 
 import (
-	_ "embed"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
-//go:embed web/index.html
-var indexHTML []byte
+//go:embed web
+var webFS embed.FS
 
-// The page is a single self-contained file: no external scripts, styles,
-// images or connections other than its own API.
-const contentSecurityPolicy = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; " +
-	"connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+// Everything the page loads comes from this program: no external scripts,
+// styles, images or connections. Embedded 3D models use blob: URLs.
+const contentSecurityPolicy = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; " +
+	"connect-src 'self' blob: data:; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 
 // routes serves the UI only to requests addressed exactly to 127.0.0.1:port,
 // which blocks DNS-rebinding pages from reading the state (and the invite key).
@@ -30,7 +32,9 @@ func (a *app) routes(port int) http.Handler {
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "no-referrer")
-		h.Set("Cache-Control", "no-store")
+		if !strings.HasPrefix(r.URL.Path, "/pz/") && !strings.HasPrefix(r.URL.Path, "/static/") {
+			h.Set("Cache-Control", "no-store")
+		}
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
 		h.Set("Cross-Origin-Resource-Policy", "same-origin")
 		h.Set("Content-Security-Policy", contentSecurityPolicy)
@@ -41,18 +45,57 @@ func (a *app) routes(port int) http.Handler {
 			http.NotFound(w, r)
 			return
 		}
+		page, _ := webFS.ReadFile("web/index.html")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-store")
-		w.Write(indexHTML)
+		w.Write(page)
 	})
+	static, _ := fs.Sub(webFS, "web")
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.FS(static))))
+	mux.HandleFunc("GET /api/lobby", func(w http.ResponseWriter, r *http.Request) {
+		st := a.lobby()
+		if n, err := strconv.Atoi(r.URL.Query().Get("demo")); err == nil {
+			st = a.withDemo(st, n)
+		}
+		writeJSON(w, http.StatusOK, st)
+	})
+	mux.HandleFunc("GET /pz/char/{seed}", func(w http.ResponseWriter, r *http.Request) {
+		seed, err := strconv.ParseUint(r.PathValue("seed"), 10, 64)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		glb, err := a.assets.characterGLB(seed)
+		if err != nil {
+			http.Error(w, "personagem indisponível", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "model/gltf-binary")
+		w.Header().Set("Cache-Control", "private, max-age=3600")
+		w.Write(glb)
+	})
+	mux.HandleFunc("GET /pz/prop/{id}/{part}", a.propHandler)
 	mux.HandleFunc("GET /api/state", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, a.snapshot())
 	})
 	mux.HandleFunc("POST /api/host", a.guard(func(body map[string]string) error {
-		return a.startHost(body["key"], body["guestKey"])
+		return a.startHost(body["key"], body["guestKey"], body["nick"])
 	}))
 	mux.HandleFunc("POST /api/join", a.guard(func(body map[string]string) error {
 		return a.startJoin(body["invite"], body["nick"])
+	}))
+	mux.HandleFunc("POST /api/nick", a.guard(func(body map[string]string) error {
+		n := sanitizeName(body["nick"])
+		if n == "" {
+			return nil
+		}
+		a.mu.Lock()
+		running := a.mode != ""
+		if !running {
+			a.cfg.Nick = n
+			a.saveConfig()
+		}
+		a.mu.Unlock()
+		return nil
 	}))
 	mux.HandleFunc("POST /api/stop", a.guard(func(map[string]string) error {
 		a.stop()

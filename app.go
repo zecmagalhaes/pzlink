@@ -67,6 +67,8 @@ type app struct {
 
 	separateGuestKey bool
 	game             gameProbe
+	assets           assets
+	remoteRoster     []rosterEntry
 }
 
 func newApp(cfgDir string) *app {
@@ -131,7 +133,7 @@ func (a *app) begin(mode string) (context.Context, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	a.mode, a.cancel, a.errMsg, a.invite = mode, cancel, "", ""
-	a.selfIP, a.hostIP, a.peers, a.others = "", "", nil, nil
+	a.selfIP, a.hostIP, a.peers, a.others, a.remoteRoster = "", "", nil, nil, nil
 	a.pings = map[string]*pingStats{}
 	a.tr.up.Store(0)
 	a.tr.down.Store(0)
@@ -158,8 +160,13 @@ func (a *app) up(ctx context.Context, s *tsnet.Server) (netip.Addr, error) {
 
 // ---------- anfitrião ----------
 
-func (a *app) startHost(key, guestKey string) error {
+func (a *app) startHost(key, guestKey, nick string) error {
 	key, guestKey = strings.TrimSpace(key), strings.TrimSpace(guestKey)
+	if n := sanitizeName(nick); n != "" {
+		a.mu.Lock()
+		a.cfg.Nick = n
+		a.mu.Unlock()
+	}
 	if key == "" {
 		key = a.cfg.AuthKey
 	}
@@ -231,6 +238,7 @@ func (a *app) startHost(key, guestKey string) error {
 		a.mu.Unlock()
 		a.setPhase("hospedando")
 		go a.hostPeerLoop(ctx, s)
+		go a.serveRoster(ctx, s, ip.String())
 	}()
 	return nil
 }
@@ -402,6 +410,7 @@ func (a *app) startJoin(code, nick string) error {
 		}
 		a.setPhase("conectado")
 		go a.pingLoop(ctx, lc, hostIP, a.statsFor(hostIP.String()), time.Second)
+		go a.fetchRosterLoop(ctx, s, hostIP.String())
 	}()
 	return nil
 }
@@ -466,7 +475,7 @@ func (a *app) stop() {
 	a.mu.Lock()
 	cancel, srv, dir := a.cancel, a.srv, a.stateD
 	a.mode, a.cancel, a.srv, a.stateD = "", nil, nil, ""
-	a.phase, a.invite, a.peers, a.others, a.hostIP, a.selfIP = "", "", nil, nil, "", ""
+	a.phase, a.invite, a.peers, a.others, a.hostIP, a.selfIP, a.remoteRoster = "", "", nil, nil, "", "", nil
 	a.mu.Unlock()
 	if cancel != nil {
 		cancel()
