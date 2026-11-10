@@ -18,6 +18,7 @@ Objetivo: jogar Project Zomboid entre Windows e Linux sem VPS e sem abrir portas
 - [x] 5. Auditoria de segurança e preparo para a comunidade (2026-11-09): ver "Auditoria" abaixo
 - [x] 8. Lobby 3D (2026-11-09): conversor .X → glTF próprio (`pzasset`), personagem aleatório por apelido com roupas prontas do jogo, cena de acampamento com objetos do jogo, lista de jogadores publicada pelo anfitrião no túnel
 - [x] 10. Lobby: perfil com sexo e profissão do jogo (roupa por profissão, ficha com barras), placas apelido/status/ping (2026-11-09)
+- [x] 11. Interface: dois quadros abaixo do lobby, grade de profissões, ninguém sem roupa (2026-11-10)
 - [ ] 9. Lobby: chapéus/óculos (itens presos a ossos), máscaras de corpo sob roupas, testar a lista de jogadores numa partida real
 - [ ] 6. Testar a receita de ACL com `tag:pzguest` numa partida real
 - [ ] 7. Confirmar o fim da queda por modo debug no PC do amigo

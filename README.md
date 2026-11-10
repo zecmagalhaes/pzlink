@@ -15,7 +15,7 @@ O PZLink liga o PC de quem entra ao PC de quem hospeda, como se todos estivessem
 - Mostra ping, variação e perda de pacotes, e avisa se a conexão está boa para jogar.
 - **Lobby 3D:** os sobreviventes conectados aparecem lado a lado num acampamento, com apelido e ping sobre a cabeça.
 
-> 🧪 **Beta.** Já testado numa partida real (Build 42.21, Windows). Problemas? Abra uma [issue](../../issues/new/choose).
+> 🧪 **Beta.** A conexão já foi testada numa partida real (Build 42.21, Windows). O lobby 3D e a escolha de profissão ainda não foram testados entre dois PCs. Problemas? Abra uma [issue](../../issues/new/choose).
 
 <details>
 <summary><b>English</b></summary>
@@ -27,13 +27,13 @@ PZLink lets you play Project Zomboid with friends without renting a VPS or forwa
 
 ## Entrar na partida de um amigo
 
-1. Baixe o arquivo do seu sistema em [**Releases**](../../releases/latest):
+1. Baixe o arquivo do seu sistema na [**versão mais recente**](../../releases):
    - Windows: `pzlink-windows.exe`
    - Linux: `pzlink-linux`
 2. Abra o programa.
    - **Windows:** se aparecer "O Windows protegeu o computador", clique em **Mais informações** e depois em **Executar assim mesmo**. O aviso aparece porque o programa não tem assinatura paga ([como conferir o arquivo](#conferir-o-download)).
    - **Linux:** `chmod +x pzlink-linux && ./pzlink-linux`
-3. O navegador abre o PZLink. Escolha um apelido, cole o **código de convite** e clique em **Entrar**.
+3. O navegador abre o PZLink. Escolha um apelido (e, se quiser, sexo e profissão), cole o **código de convite** e clique em **Entrar**.
 4. Espere ficar **verde**.
 5. No jogo, em **Entrar**, adicione um servidor com:
    - **IP:** `127.0.0.1`
@@ -64,11 +64,11 @@ Deixe o PZLink aberto enquanto joga.
 
 ## Lobby 3D
 
-No topo do PZLink aparece um acampamento ao entardecer com os sobreviventes da partida: você no centro, o anfitrião e os amigos ao lado, cada um com apelido, nome do personagem e ping.
+No topo do PZLink aparece um acampamento ao entardecer com os sobreviventes da partida: você no centro, o anfitrião e os amigos ao lado. A placa de cada um mostra apelido, se está online, o ping e a profissão.
 
-- **Monte o seu sobrevivente:** escolha o sexo (ou deixe aleatório) e a **profissão do jogo**, que define a roupa: policial de farda, médico de jaleco, bombeiro, chef... A ficha mostra as habilidades iniciais em barras, como na criação de personagem do jogo.
+- **Monte o seu sobrevivente** no quadro abaixo do lobby: escolha o sexo (ou deixe aleatório) e a **profissão do jogo** na grade de cartões. A profissão define a roupa: policial de farda, médico de jaleco, bombeiro, chef... Sem profissão, a roupa é sorteada.
 - O rosto e o cabelo são sorteados a partir do apelido. Todo mundo vê o mesmo boneco para a mesma pessoa.
-- Cada placa mostra apelido, se o jogador está online e o ping. Passe o mouse para ver a ficha da profissão.
+- **Ficha da profissão:** passe o mouse sobre um personagem no lobby, ou sobre um cartão de profissão, para ver as habilidades iniciais em barras, como na criação de personagem do jogo. Os amigos veem a sua escolha.
 - **Os modelos e as texturas vêm da sua instalação do Project Zomboid**, lidos na hora. Nenhum arquivo do jogo está neste repositório nem no executável. Sem o jogo instalado, o lobby mostra um aviso e o resto do PZLink funciona normalmente.
 - Se o jogo estiver numa pasta fora do padrão da Steam, defina a variável `PZ_HOME` com a pasta que contém `media`.
 - Quer ver o lobby cheio sem ninguém conectado? Abra o PZLink e acrescente `?demo=4` ao endereço no navegador.
