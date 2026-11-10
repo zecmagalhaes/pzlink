@@ -18,12 +18,17 @@
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 14px; }
   .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
   .tabs button { flex: 1; background: var(--card); color: var(--muted); border: 1px solid var(--line); }
-  .tabs button.on { color: var(--text); border-color: var(--accent); background: #2a1c18; }
+  .tabs button:hover { background: #2a2720; color: var(--text); border-color: #5a5346; }
+  .tabs button.on, .tabs button.on:hover { color: var(--text); border-color: var(--accent); background: #2a1c18; }
   label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
   input, textarea { width: 100%; background: #12110d; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 10px; font: inherit; }
   textarea { font-family: ui-monospace, Consolas, monospace; font-size: 12px; resize: vertical; min-height: 70px; word-break: break-all; }
-  button { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 11px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+  button { background: var(--accent); color: #fff; border: 0; border-radius: 6px; padding: 11px 16px; font: inherit; font-weight: 600; cursor: pointer;
+    transition: background-color .18s ease, color .18s ease, border-color .18s ease, transform .12s ease; }
   button:hover { background: var(--accent2); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
+  button.ghost:hover { background: #2a2720; border-color: #5a5346; }
   button.ghost { background: transparent; border: 1px solid var(--line); color: var(--text); }
   button:disabled { opacity: .5; cursor: default; }
   .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -56,16 +61,20 @@
   #lobby-labels { position: absolute; inset: 0; pointer-events: none; }
   #lobby::after { content: ""; position: absolute; inset: auto 0 0 0; height: 50px; pointer-events: none;
     background: linear-gradient(to bottom, transparent, var(--bg)); }
-  .plate { position: absolute; left: 0; top: 0; text-align: center; white-space: nowrap; will-change: transform;
-    text-shadow: 0 1px 3px #000, 0 0 8px rgba(0,0,0,.6); }
-  .plate .tag { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 1px 6px; border-radius: 3px;
-    background: var(--accent); color: #fff; text-shadow: none; margin-bottom: 2px; }
-  .plate .nick { font-size: 16px; font-weight: 800; letter-spacing: .3px; }
-  .plate .char { font-size: 11px; color: #d8cfbb; }
-  .plate .outfit { font-size: 10px; color: #a8a08e; font-style: italic; }
-  .plate .ping { display: inline-block; margin-top: 3px; font: 600 11px ui-monospace, Consolas, monospace; padding: 1px 7px;
-    border-radius: 99px; background: rgba(20,19,15,.75); color: var(--muted); text-shadow: none; }
+  .plate { position: absolute; left: 0; top: 0; will-change: transform; transform-origin: 50% 100%; white-space: nowrap; text-align: center;
+    background: rgba(16,15,12,.68); border: 1px solid rgba(255,255,255,.09); border-radius: 8px; padding: 4px 9px 5px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.35); backdrop-filter: blur(3px); }
+  .plate::after { content: ""; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%) rotate(45deg);
+    width: 8px; height: 8px; background: rgba(16,15,12,.68); border-right: 1px solid rgba(255,255,255,.09); border-bottom: 1px solid rgba(255,255,255,.09); }
+  .plate .top { display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .plate .tag { position: absolute; left: 50%; top: -9px; transform: translateX(-50%); font-size: 8.5px; font-weight: 800; letter-spacing: .8px;
+    padding: 1px 6px; border-radius: 3px; background: var(--accent); color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+  .plate .tag.host { background: #b8862b; }
+  .plate .nick { font-size: 14px; font-weight: 800; letter-spacing: .2px; color: #f3ecdc; }
+  .plate .ping { font: 700 10px ui-monospace, Consolas, monospace; padding: 1px 6px; border-radius: 99px; background: rgba(255,255,255,.07); color: var(--muted); }
   .plate .ping.good { color: var(--good); } .plate .ping.ok { color: var(--ok); } .plate .ping.bad { color: var(--bad); }
+  .plate .char { margin-top: 1px; font-size: 10.5px; color: #b9b09b; max-width: 120px; margin-inline: auto; overflow: hidden; text-overflow: ellipsis; }
+  .plate .tag:not([style*="none"]) ~ .top { margin-top: 3px; }
   #lobby-msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 420px; text-align: center;
     background: rgba(20,19,15,.85); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; color: var(--muted); }
   #lobby-brand { position: absolute; left: 16px; top: 12px; font-weight: 800; font-size: 22px; letter-spacing: .5px;

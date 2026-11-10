@@ -181,21 +181,22 @@ function ringFor(level) {
 
 function makeLabel() {
   const el = document.createElement('div'); el.className = 'plate';
-  el.innerHTML = '<div class="tag"></div><div class="nick"></div><div class="char"></div><div class="outfit"></div><div class="ping"></div>';
+  el.innerHTML = '<span class="tag"></span><div class="top"><span class="nick"></span><span class="ping"></span></div><div class="char"><span class="cname"></span></div>';
   labels.append(el); return el;
 }
 
 function fillLabel(p, el) {
   const tag = p.host ? 'ANFITRIÃO' : (p.self ? 'VOCÊ' : '');
-  el.querySelector('.tag').textContent = tag;
-  el.querySelector('.tag').style.display = tag ? '' : 'none';
+  const tagEl = el.querySelector('.tag');
+  tagEl.textContent = tag; tagEl.style.display = tag ? '' : 'none';
+  tagEl.classList.toggle('host', !!p.host);
   el.querySelector('.nick').textContent = p.name;
   const c = p.character;
-  el.querySelector('.char').textContent = c ? c.name : '';
-  el.querySelector('.outfit').textContent = c ? prettyOutfit(c.outfit) : '';
+  el.querySelector('.cname').textContent = c ? c.name : '';
+  el.title = c ? `${c.name} · ${prettyOutfit(c.outfit)}` : '';
   const ping = el.querySelector('.ping');
   ping.className = 'ping ' + (p.level || 'wait');
-  ping.textContent = p.host ? 'servidor' : p.path === 'offline' ? 'não conectado' : (p.pingMs ? Math.round(p.pingMs) + ' ms' : 'medindo…');
+  ping.textContent = p.host ? 'servidor' : p.path === 'offline' ? 'offline' : (p.pingMs ? Math.round(p.pingMs) + ' ms' : '…');
 }
 
 function prettyOutfit(o) {
@@ -227,7 +228,7 @@ function addPlayer(p, slot) {
       act.play(); act.time = Math.random() * gltf.animations[0].duration;
       entry.mixer.timeScale = idleSpeed * (0.9 + Math.random() * 0.2);
     }
-  }, undefined, () => { entry.label.querySelector('.char').textContent = 'personagem indisponível'; });
+  }, undefined, () => { entry.label.querySelector('.cname').textContent = 'personagem indisponível'; });
 }
 
 function removePlayer(seed) {
@@ -293,11 +294,14 @@ function frame() {
     if (e.mixer) e.mixer.update(dt);
     e.ring.material.opacity = 0.55 + Math.sin(t * 3 + e.slot) * 0.25;
     if (e.head) e.head.getWorldPosition(tmp); else tmp.set(e.group.position.x, 0.95, e.group.position.z);
-    tmp.y += 0.16;
+    tmp.y += 0.2;
+    const dist = camera.position.distanceTo(tmp);
     tmp.project(camera);
+    const scale = Math.max(0.78, Math.min(1, 2.9 / dist));
+    e.label.style.zIndex = String(100 - e.slot);
     const vis = tmp.z < 1;
     e.label.style.display = vis ? '' : 'none';
-    e.label.style.transform = `translate(-50%, -100%) translate(${(tmp.x * 0.5 + 0.5) * rect.width}px, ${(-tmp.y * 0.5 + 0.5) * rect.height}px)`;
+    e.label.style.transform = `translate(${(tmp.x * 0.5 + 0.5) * rect.width}px, ${(-tmp.y * 0.5 + 0.5) * rect.height}px) translate(-50%, -100%) scale(${scale.toFixed(3)})`;
   }
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
