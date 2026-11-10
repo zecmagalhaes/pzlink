@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -17,6 +18,8 @@ type Catalog struct {
 	MaleHair    []HairStyle
 	FemHair     []HairStyle
 	Beards      []HairStyle
+
+	tops, bottoms []string // everyday shirts and trousers, to complete outfits
 
 	mu    sync.Mutex
 	items map[string]*ClothingItem
@@ -76,8 +79,21 @@ func (g *Game) LoadCatalog() (*Catalog, error) {
 		return nil, err
 	}
 	for _, f := range guids.Files {
-		c.guidPath[strings.ToLower(f.GUID)] = f.Path
+		guid := strings.ToLower(f.GUID)
+		c.guidPath[guid] = f.Path
+		name := strings.ToLower(f.Path[strings.LastIndexAny(f.Path, "/\\")+1:])
+		switch {
+		case !strings.HasPrefix(f.Path, "media/clothing/clothingItems/"):
+		case strings.HasPrefix(name, "trousers_") && !strings.ContainsAny(name, "0123456789") && !strings.Contains(name, "crafted") && !strings.Contains(name, "scrubs") &&
+			!strings.Contains(name, "hazmat") && !strings.Contains(name, "prisoner") && !strings.Contains(name, "santa"):
+			c.bottoms = append(c.bottoms, guid)
+		case (strings.HasPrefix(name, "tshirt_") || strings.HasPrefix(name, "shirt_")) &&
+			!strings.Contains(name, "profession") && !strings.Contains(name, "santa"):
+			c.tops = append(c.tops, guid)
+		}
 	}
+	sort.Strings(c.tops) // map order is random; the draw must be reproducible
+	sort.Strings(c.bottoms)
 
 	var outfits struct {
 		Male   []Outfit `xml:"m_MaleOutfits"`
@@ -151,4 +167,11 @@ func (c *Catalog) Item(guid string) (*ClothingItem, error) {
 	}
 	c.items[guid] = it
 	return it, nil
+}
+
+// ItemName is the clothing item's file name without extension ("Tshirt_ArmyGreen").
+func (c *Catalog) ItemName(guid string) string {
+	rel := c.guidPath[strings.ToLower(guid)]
+	rel = rel[strings.LastIndexAny(rel, "/\\")+1:]
+	return strings.TrimSuffix(rel, ".xml")
 }

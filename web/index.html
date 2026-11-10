@@ -63,7 +63,7 @@
     background: linear-gradient(to bottom, transparent, var(--bg)); }
   .plate { position: absolute; left: 0; top: 0; will-change: transform; transform-origin: 50% 100%; white-space: nowrap; text-align: center;
     background: rgba(16,15,12,.72); border: 1px solid rgba(255,255,255,.09); border-radius: 8px; padding: 6px 10px 5px;
-    box-shadow: 0 4px 14px rgba(0,0,0,.35); backdrop-filter: blur(3px); pointer-events: auto; cursor: default; }
+    box-shadow: 0 4px 14px rgba(0,0,0,.35); backdrop-filter: blur(3px); }
   .plate::after { content: ""; position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%) rotate(45deg);
     width: 8px; height: 8px; background: rgba(16,15,12,.72); border-right: 1px solid rgba(255,255,255,.09); border-bottom: 1px solid rgba(255,255,255,.09); }
   .plate .tag { position: absolute; left: 50%; top: -9px; transform: translateX(-50%); font-size: 8.5px; font-weight: 800; letter-spacing: .8px;
@@ -98,8 +98,6 @@
   .seg button:hover { background: #2a2720; color: var(--text); border-color: #5a5346; }
   .seg button.on, .seg button.on:hover { background: #2a1c18; color: var(--text); border-color: var(--accent); }
   select { width: 100%; background: #12110d; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 10px; font: inherit; }
-  #prof-card { margin-top: 10px; }
-  #prof-card .pzcard { min-width: 0; }
   #lobby-msg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 420px; text-align: center;
     background: rgba(20,19,15,.85); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; color: var(--muted); }
   #lobby-brand { position: absolute; left: 16px; top: 12px; font-weight: 800; font-size: 22px; letter-spacing: .5px;
@@ -132,8 +130,7 @@
     </div>
     <label for="prof">Profissão</label>
     <select id="prof"></select>
-    <div id="prof-card"></div>
-    <div class="hint" id="avatar-hint">O apelido sorteia o rosto e o cabelo; a profissão escolhe a roupa. Os amigos veem o mesmo personagem.</div>
+    <div class="hint" id="avatar-hint">O apelido sorteia o rosto e o cabelo; a profissão escolhe a roupa. Passe o mouse sobre o personagem no lobby para ver as habilidades da profissão.</div>
   </div>
 
   <!-- ===== tela inicial ===== -->
@@ -273,12 +270,7 @@ function setSex(v) {
 }
 document.querySelectorAll('#sex button').forEach(b => b.onclick = () => { setSex(b.dataset.sex); saveProfile(0); });
 $('nick').addEventListener('input', () => saveProfile());
-$('prof').addEventListener('change', () => { showProf(); saveProfile(0); });
-function showProf() {
-  const p = professions.find(x => x.id === $('prof').value);
-  const box = $('prof-card'); box.replaceChildren();
-  if (p && window.pzProfCard) box.append(window.pzProfCard(p));
-}
+$('prof').addEventListener('change', () => saveProfile(0));
 async function loadProfessions(selected) {
   try { professions = await (await fetch('/api/professions')).json(); } catch { professions = []; }
   const sel = $('prof'); sel.replaceChildren();
@@ -289,9 +281,7 @@ async function loadProfessions(selected) {
     sel.append(o);
   }
   sel.value = selected || '';
-  showProf();
 }
-window.addEventListener('pz-cards-ready', showProf);
 $('btn-stop').onclick = () => act($('btn-stop'), '/api/stop');
 $('forget').onclick = e => { e.preventDefault(); act($('btn-host'), '/api/forget-key'); };
 $('btn-copy').onclick = async () => {

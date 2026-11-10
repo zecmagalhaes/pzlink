@@ -183,8 +183,6 @@ function makeLabel() {
   const el = document.createElement('div'); el.className = 'plate';
   el.innerHTML = '<span class="tag"></span><div class="nick"></div>' +
     '<div class="status"><span class="led"></span><span class="st"></span><span class="ms"></span></div><div class="prof"></div>';
-  el.addEventListener('mouseenter', () => showTip(el));
-  el.addEventListener('mouseleave', hideTip);
   labels.append(el); return el;
 }
 
@@ -219,30 +217,45 @@ function profCard(p, extra) {
   }
   return card;
 }
-window.pzProfCard = p => profCard(p);
-window.dispatchEvent(new Event('pz-cards-ready'));
 
+// ---------- ficha ao passar o mouse sobre o personagem ----------
 const tip = document.createElement('div'); tip.id = 'plate-tip'; tip.hidden = true; root.append(tip);
-let tipFor = null;
-function showTip(el) {
-  const e = [...players.values()].find(x => x.label === el);
-  if (!e) return;
-  tipFor = el;
-  const c = e.data.character;
-  const who = c ? `${c.name} · ${prettyOutfit(c.outfit)}` : '';
-  tip.replaceChildren(profCard(e.data.professionInfo, who));
+let tipFor = null, mouse = null;
+const raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function entryAt(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects([...players.values()].map(e => e.hit), false);
+  return hits.length ? hits[0].object.userData.entry : null;
+}
+function showTip(e) {
+  if (!e || !e.data.professionInfo) { hideTip(); return; } // só depois de escolher a profissão
+  if (tipFor !== e) {
+    const c = e.data.character;
+    const who = c ? `${e.data.name} · ${c.name}` : e.data.name;
+    tip.replaceChildren(profCard(e.data.professionInfo, who));
+    tipFor = e;
+  }
   tip.hidden = false; placeTip();
 }
-function hideTip() { tip.hidden = true; tipFor = null; }
+function hideTip() { tip.hidden = true; tipFor = null; canvas.style.cursor = ''; }
 function placeTip() {
-  if (!tipFor) return;
-  const r = tipFor.getBoundingClientRect(), base = root.getBoundingClientRect();
+  if (!tipFor || !mouse) return;
+  const base = root.getBoundingClientRect();
   const w = tip.offsetWidth, h = tip.offsetHeight;
-  let x = r.left - base.left + r.width / 2 - w / 2, y = r.bottom - base.top + 10;
-  x = Math.max(8, Math.min(base.width - w - 8, x));
-  if (y + h > base.height - 8) y = Math.max(8, r.top - base.top - h - 10);
-  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  let x = mouse.x - base.left + 18, y = mouse.y - base.top + 14;
+  if (x + w > base.width - 8) x = mouse.x - base.left - w - 18;
+  if (y + h > base.height - 8) y = base.height - h - 8;
+  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
 }
+canvas.addEventListener('pointermove', ev => {
+  mouse = { x: ev.clientX, y: ev.clientY };
+  const e = entryAt(ev.clientX, ev.clientY);
+  canvas.style.cursor = e && e.data.professionInfo ? 'help' : '';
+  if (e) showTip(e); else hideTip();
+});
+canvas.addEventListener('pointerleave', () => { mouse = null; hideTip(); });
 
 function fillLabel(p, el) {
   const tag = p.host && p.self ? 'VOCÊ · ANFITRIÃO' : p.host ? 'ANFITRIÃO' : (p.self ? 'VOCÊ' : '');
@@ -257,7 +270,6 @@ function fillLabel(p, el) {
   ms.className = 'ms ' + (p.level || 'wait');
   ms.textContent = !p.online ? '' : p.host ? '· servidor' : (p.pingMs ? '· ' + Math.round(p.pingMs) + ' ms' : '· …');
   el.querySelector('.prof').textContent = p.professionInfo ? p.professionInfo.name : 'Sem profissão';
-  if (tipFor === el) showTip(el);
 }
 
 function prettyOutfit(o) {
@@ -273,6 +285,8 @@ function addPlayer(p, slot) {
   scene.add(group);
   const entry = { group, mixer: null, data: p, label: makeLabel(), ring: ringFor(p.level), born: performance.now(), head: null, slot };
   group.add(entry.ring);
+  entry.hit = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.0, 10), new THREE.MeshBasicMaterial({ visible: false }));
+  entry.hit.position.y = 0.5; entry.hit.userData.entry = entry; group.add(entry.hit);
   fillLabel(p, entry.label);
   const key = playerKey(p);
   players.set(key, entry);
@@ -299,7 +313,7 @@ function playerKey(p) { return `${p.seed}|${p.sex || ''}|${p.profession || ''}`;
 function removePlayer(seed) {
   const e = players.get(seed);
   if (!e) return;
-  if (tipFor === e.label) hideTip();
+  if (tipFor === e) hideTip();
   scene.remove(e.group); e.label.remove(); players.delete(seed);
 }
 
@@ -313,6 +327,7 @@ function updatePlayers(list) {
     const e = players.get(key);
     if (!e) { addPlayer(p, i); return; }
     e.data = p; fillLabel(p, e.label);
+    if (tipFor === e) { tipFor = null; showTip(e); }
     e.ring.material.color.setHex(LEVEL_COLOR[p.level] || LEVEL_COLOR.wait);
     if (e.slot !== i) {
       e.slot = i; const [x, z] = SLOTS[i % SLOTS.length];
@@ -394,5 +409,15 @@ async function refresh() {
 }
 async function poll() { await refresh(); setTimeout(poll, 2000); }
 window.pzLobbyRefresh = refresh;
+// ?demo=N&tip=apelido abre a ficha de um jogador (para fotos e testes sem mouse)
+const tipDemo = new URLSearchParams(location.search).get('tip');
+if (tipDemo) setTimeout(() => {
+  const e = [...players.values()].find(x => x.data.name === tipDemo);
+  if (!e) return;
+  const v = new THREE.Vector3(); e.hit.getWorldPosition(v); v.project(camera);
+  const r = canvas.getBoundingClientRect();
+  mouse = { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height };
+  showTip(e);
+}, 6000);
 poll();
 requestAnimationFrame(frame);

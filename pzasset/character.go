@@ -25,6 +25,7 @@ type Character struct {
 	Hair       string     `json:"hair"`
 	Beard      string     `json:"beard,omitempty"`
 	HairColor  [3]float64 `json:"hairColor"`
+	Items      []string   `json:"items,omitempty"` // clothing item names
 
 	models   []piece
 	overlays []overlay
@@ -103,53 +104,69 @@ func (c *Catalog) NewCharacter(seed uint64, opt Options) (*Character, error) {
 			outfits = fit
 		}
 	}
+	// addItem dresses one clothing item; it reports whether anything was added.
+	addItem := func(guid string) bool {
+		it, err := c.Item(guid)
+		if err != nil || it.Static {
+			return false // attached props (hats, glasses) come later
+		}
+		tint := [3]float64{1, 1, 1}
+		if it.AllowTint {
+			tint = pick(r, tints)
+		}
+		model := it.MaleModel
+		if ch.Female {
+			model = it.FemaleModel
+		}
+		if mp, ok := g.ModelPath(model); ok {
+			choices := it.TextureChoices
+			if len(choices) == 0 {
+				choices = it.BaseTextures
+			}
+			if len(choices) == 0 {
+				return false
+			}
+			tp, ok := g.TexturePath(pick(r, choices))
+			if !ok {
+				return false
+			}
+			ch.models = append(ch.models, piece{model: mp, texture: tp, tint: tint})
+			ch.Items = append(ch.Items, c.ItemName(guid))
+			return true
+		}
+		if len(it.BaseTextures) > 0 {
+			if tp, ok := g.TexturePath(pick(r, it.BaseTextures)); ok {
+				ch.overlays = append(ch.overlays, overlay{texture: tp, tint: tint})
+				ch.Items = append(ch.Items, c.ItemName(guid))
+				return true
+			}
+		}
+		return false
+	}
 	for attempt := 0; attempt < 8 && len(ch.models)+len(ch.overlays) == 0; attempt++ {
 		o := pick(r, outfits)
 		ch.Outfit = o.Name
-		ch.models, ch.overlays = nil, nil
+		ch.models, ch.overlays, ch.Items = nil, nil, nil
 		for _, e := range o.Items {
 			if e.Probability > 0 && r.Float64() > e.Probability {
 				continue
 			}
 			guid := e.GUID
 			if len(e.Alt) > 0 {
-				all := append([]string{e.GUID}, e.Alt...)
-				guid = pick(r, all)
+				guid = pick(r, append([]string{e.GUID}, e.Alt...))
 			}
-			it, err := c.Item(guid)
-			if err != nil || it.Static {
-				continue // attached props (hats, glasses) come later
-			}
-			tint := [3]float64{1, 1, 1}
-			if it.AllowTint {
-				tint = pick(r, tints)
-			}
-			model := it.MaleModel
-			if ch.Female {
-				model = it.FemaleModel
-			}
-			if mp, ok := g.ModelPath(model); ok {
-				choices := it.TextureChoices
-				if len(choices) == 0 {
-					choices = it.BaseTextures
-				}
-				if len(choices) == 0 {
-					continue
-				}
-				tp, ok := g.TexturePath(pick(r, choices))
-				if !ok {
-					continue
-				}
-				ch.models = append(ch.models, piece{model: mp, texture: tp, tint: tint})
-				continue
-			}
-			if len(it.BaseTextures) > 0 {
-				if tp, ok := g.TexturePath(pick(r, it.BaseTextures)); ok {
-					ch.overlays = append(ch.overlays, overlay{texture: tp, tint: tint})
-				}
-			}
+			addItem(guid)
 		}
 	}
+	// Many outfits only sometimes include trousers or a shirt (the game fills
+	// the gap with other rules). Nobody in the lobby goes out half naked.
+	fill := func(pool []string, has func([]string) bool) {
+		for tries := 0; tries < 6 && !has(ch.Items) && len(pool) > 0; tries++ {
+			addItem(pick(r, pool))
+		}
+	}
+	fill(c.bottoms, hasBottom)
+	fill(c.tops, hasTop)
 
 	ch.HairColor = pick(r, hairColors)
 	styles := c.MaleHair
@@ -321,3 +338,23 @@ func decodePNG(path string) (image.Image, error) {
 	defer f.Close()
 	return png.Decode(f)
 }
+
+var (
+	topWords    = []string{"tshirt", "shirt", "jacket", "sweater", "hoodie", "jumper", "coat", "dress", "vest", "tanktop", "boilersuit", "suit", "apron", "blouse", "poncho", "smock", "robe", "top", "gown", "overalls", "dungarees", "bodysuit"}
+	bottomWords = []string{"trousers", "shorts", "skirt", "dress", "jeans", "pants", "boilersuit", "suit_", "overalls", "dungarees", "gown", "bodysuit", "leggings", "kilt"}
+)
+
+func itemsMatch(items, words []string) bool {
+	for _, it := range items {
+		l := strings.ToLower(it)
+		for _, w := range words {
+			if strings.Contains(l, w) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func hasTop(items []string) bool    { return itemsMatch(items, topWords) }
+func hasBottom(items []string) bool { return itemsMatch(items, bottomWords) }
